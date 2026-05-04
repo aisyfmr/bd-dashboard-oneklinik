@@ -3,7 +3,7 @@ import json
 import os
 from datetime import datetime, timedelta, timezone
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static', template_folder='templates')
 
 IHC_SEGMENTS = ['IHC - Company', 'IHC - Apartment', 'IHC - Hotel']
 CW_SEGMENTS  = ['Corp Wellness - HR', 'Corp Wellness - Broker', 'Corp Wellness - Insurance']
@@ -89,6 +89,11 @@ def shared_context():
         'phases':      CALENDAR_PHASES,
         'week_label':  f"{monday.strftime('%d %b')} – {sunday.strftime('%d %b %Y')}",
     }
+
+
+@app.route('/health')
+def health():
+    return 'OK', 200
 
 
 @app.route('/')
