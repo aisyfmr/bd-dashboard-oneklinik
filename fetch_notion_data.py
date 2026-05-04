@@ -2,30 +2,32 @@
 """
 fetch_notion_data.py
 
-Pulls leads from the OneKlinik BD Notion database and pushes them
-to the local dashboard via POST /update-data.
+Local utility script — run manually to pull leads from Notion and push them
+to data.json via POST /update-data.  NOT imported by app.py and NOT required
+for the Railway deployment to work.
 
-Usage:
+Usage (local only):
     python fetch_notion_data.py
 
-Requires:
-    - .env file with NOTION_TOKEN set (copy from .env.example)
-    - Dashboard running on http://localhost:5000
+NOTE: NOTION_TOKEN and direct Notion API calls are not used by the deployed app.
+Data is managed via data.json which is bundled with the repo.
 """
 import os
 import sys
 import requests
-from dotenv import load_dotenv
 
-load_dotenv()
-
+# ── Config ─────────────────────────────────────────────────────────────────
 DATABASE_ID   = "34fc88be-4d3c-8045-ab26-df687a6be8ce"
 NOTION_API    = "https://api.notion.com/v1"
 NOTION_VER    = "2022-06-28"
 DASHBOARD_URL = "http://localhost:5000/update-data"
 
+# NOTION_TOKEN is only needed when running this script locally.
+# It is NOT read on startup and NOT required by the Railway deployment.
+# To use: set NOTION_TOKEN in your local .env file before running.
 
-# ── Notion request headers ─────────────────────────────────────────────────
+
+# ── Notion request headers ──────────────────────────────────────────────────
 
 def notion_headers(token):
     return {
@@ -35,10 +37,9 @@ def notion_headers(token):
     }
 
 
-# ── Property value extractors ──────────────────────────────────────────────
+# ── Property value extractors ───────────────────────────────────────────────
 
 def get_text(prop):
-    """Extract plain text from a title or rich_text property."""
     if not prop:
         return ""
     ptype = prop.get("type", "")
@@ -49,7 +50,6 @@ def get_text(prop):
 
 
 def get_select(prop):
-    """Extract the option name from a select or status property."""
     if not prop:
         return ""
     ptype = prop.get("type", "")
@@ -58,7 +58,6 @@ def get_select(prop):
 
 
 def get_email(prop):
-    """Extract value from an email property, falling back to rich_text."""
     if not prop:
         return ""
     if prop.get("type") == "email":
@@ -67,11 +66,6 @@ def get_email(prop):
 
 
 def get_created_time(page, props):
-    """
-    Resolve the createdTime field by checking (in order):
-      1. A database property of type created_time or date with a matching name
-      2. The page-level created_time from Notion metadata (always present)
-    """
     candidate_keys = (
         "Created Time", "Created time", "createdTime",
         "Date Created", "Date", "Tanggal",
@@ -85,58 +79,30 @@ def get_created_time(page, props):
             return p.get("created_time") or page["created_time"]
         if ptype == "date" and p.get("date"):
             return p["date"]["start"]
-
-    # Fallback: every Notion page object has a top-level created_time
     return page["created_time"]
 
 
-# ── Notion database fetcher ────────────────────────────────────────────────
+# ── Notion database fetcher ─────────────────────────────────────────────────
 
 def query_database(database_id, headers):
-    """
-    Generator that yields every page from a Notion database,
-    automatically following pagination cursors.
-    """
     url = f"{NOTION_API}/databases/{database_id}/query"
     cursor = None
-
     while True:
         body = {"page_size": 100}
         if cursor:
             body["start_cursor"] = cursor
-
         resp = requests.post(url, headers=headers, json=body, timeout=30)
-
-        if resp.status_code == 401:
-            sys.exit(
-                "Error: NOTION_TOKEN is invalid or expired.\n"
-                "Check the token in your .env file."
-            )
-        if resp.status_code == 403:
-            sys.exit(
-                "Error: Integration does not have access to this database.\n"
-                "In Notion, open the database → ··· menu → Connections → add your integration."
-            )
-        if resp.status_code == 404:
-            sys.exit(
-                f"Error: Database '{database_id}' not found.\n"
-                "Double-check the DATABASE_ID in this script."
-            )
-
         resp.raise_for_status()
         data = resp.json()
-
         yield from data.get("results", [])
-
         if not data.get("has_more"):
             break
         cursor = data["next_cursor"]
 
 
-# ── Page → lead mapper ─────────────────────────────────────────────────────
+# ── Page → lead mapper ──────────────────────────────────────────────────────
 
 def page_to_lead(page):
-    """Map one Notion page object to our data.json lead structure."""
     props = page.get("properties", {})
     return {
         "companyName":    get_text(props.get("Company Name")),
@@ -150,7 +116,7 @@ def page_to_lead(page):
     }
 
 
-# ── Main ───────────────────────────────────────────────────────────────────
+# ── Main (local use only) ───────────────────────────────────────────────────
 
 def main():
     token = os.environ.get("NOTION_TOKEN", "").strip()
@@ -164,7 +130,6 @@ def main():
 
     headers = notion_headers(token)
 
-    # ── Fetch ──────────────────────────────────────────────
     print(f"Fetching from Notion database {DATABASE_ID} ...")
     try:
         pages = list(query_database(DATABASE_ID, headers))
@@ -173,10 +138,7 @@ def main():
 
     print(f"  {len(pages)} page(s) retrieved from Notion")
 
-    # ── Map ────────────────────────────────────────────────
     leads = [page_to_lead(p) for p in pages]
-
-    # Drop blank rows (deleted/empty pages in Notion show up with no title)
     leads = [l for l in leads if l["companyName"]]
     print(f"  {len(leads)} lead(s) after filtering empty rows")
 
@@ -184,7 +146,6 @@ def main():
         print("Nothing to push — exiting.")
         return
 
-    # ── Push ───────────────────────────────────────────────
     print(f"Pushing to {DASHBOARD_URL} ...")
     try:
         resp = requests.post(DASHBOARD_URL, json=leads, timeout=10)
