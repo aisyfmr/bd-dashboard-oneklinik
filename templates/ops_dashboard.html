@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OneKlinik — Ops Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --blue:#34b6f8;--blue-d:#1a8fd4;--blue-dim:#e8f6fe;--blue-2:#c5e9fb;
+  --ch:#545454;--ch2:#3a3a3a;
+  --g1:#f7f8fa;--g2:#eef0f3;--g3:#d4d8de;--g4:#9aa5b4;
+  --white:#fff;
+  --green:#27ae60;--green-bg:#f0fdf4;
+  --yellow:#f2994a;--yellow-bg:#fffbeb;
+  --red:#eb5757;--red-bg:#fff5f5;
+  --purple:#9b51e0;--purple-bg:#f5efff;
+  --sw:220px;--hh:56px;
+  --r:10px;--sh:0 1px 4px rgba(0,0,0,.07),0 4px 16px rgba(0,0,0,.04);
+  --font:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
+}
+body{font-family:var(--font);background:var(--g1);color:var(--ch);min-height:100vh;display:flex;font-size:14px}
+.sidebar{width:var(--sw);background:var(--white);border-right:1px solid var(--g2);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;overflow-y:auto}
+.sb-logo{padding:18px 20px 14px;border-bottom:1px solid var(--g2);display:flex;align-items:center;gap:8px}
+.sb-dot{width:9px;height:9px;border-radius:50%;background:var(--blue);flex-shrink:0}
+.sb-wordmark{font-weight:700;font-size:15px;letter-spacing:-.3px}
+.sb-ops{font-size:11px;color:var(--g4);margin-left:1px}
+.sb-lbl{font-size:10px;font-weight:600;color:var(--g4);letter-spacing:.08em;text-transform:uppercase;padding:14px 20px 5px}
+.nav{display:flex;align-items:center;gap:9px;padding:8px 20px;cursor:pointer;font-size:13.5px;color:var(--ch);border-left:3px solid transparent;transition:background .12s}
+.nav:hover{background:var(--g1)}
+.nav.active{background:var(--blue-dim);border-left-color:var(--blue);font-weight:600;color:var(--blue-d)}
+.nav-ic{font-size:15px;width:18px;text-align:center}
+.sb-footer{margin-top:auto;padding:14px 20px;border-top:1px solid var(--g2);font-size:12px;color:var(--g4)}
+.sb-footer strong{display:block;color:var(--ch);margin-bottom:1px}
+.gen-btn{margin:0 14px 14px;padding:10px;background:var(--blue);color:#fff;border:none;border-radius:var(--r);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;transition:background .12s,transform .1s;display:flex;align-items:center;justify-content:center;gap:6px}
+.gen-btn:hover{background:var(--blue-d);transform:translateY(-1px)}
+.gen-btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
+.main{margin-left:var(--sw);flex:1;display:flex;flex-direction:column;min-height:100vh}
+.topbar{height:var(--hh);background:var(--white);border-bottom:1px solid var(--g2);display:flex;align-items:center;padding:0 28px;gap:14px;position:sticky;top:0;z-index:50}
+.tb-title{font-size:15px;font-weight:600;flex:1}
+.tb-week{font-size:12px;background:var(--blue-dim);color:var(--blue-d);padding:4px 12px;border-radius:99px;font-weight:500}
+.tb-date{font-size:12px;color:var(--g4)}
+.sync-btn{font-size:11px;color:var(--g4);background:var(--g1);border:1px solid var(--g2);padding:4px 10px;border-radius:6px;cursor:pointer;font-family:var(--font);transition:background .12s}
+.sync-btn:hover{background:var(--g2);color:var(--ch)}
+.content{padding:24px 28px;flex:1}
+.card{background:var(--white);border-radius:var(--r);border:1px solid var(--g2);box-shadow:var(--sh);overflow:hidden;margin-bottom:16px}
+.card-h{padding:14px 18px 11px;border-bottom:1px solid var(--g2);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.card-t{font-size:13px;font-weight:600}
+.card-b{padding:16px 18px}
+.sec-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--blue);margin-bottom:8px}
+.divider{height:1px;background:var(--g2);margin:12px 0}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.stack{display:flex;flex-direction:column;gap:16px}
+.badge{display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px}
+.b-green{background:var(--green-bg);color:var(--green)}
+.b-yellow{background:var(--yellow-bg);color:var(--yellow)}
+.b-red{background:var(--red-bg);color:var(--red)}
+.b-blue{background:var(--blue-dim);color:var(--blue-d)}
+.b-grey{background:var(--g2);color:var(--g4)}
+.b-purple{background:var(--purple-bg);color:var(--purple)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-size:11px;font-weight:600;color:var(--g4);padding:8px 12px;background:var(--g1);border-bottom:1px solid var(--g2)}
+td{padding:9px 12px;border-bottom:1px solid var(--g2);vertical-align:top;line-height:1.45}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--g1)}
+.dl{list-style:none}
+.dl li{padding:5px 0 5px 16px;position:relative;font-size:13px;line-height:1.5;border-bottom:1px solid var(--g2)}
+.dl li:last-child{border-bottom:none}
+.dl li::before{content:'•';position:absolute;left:0;color:var(--blue)}
+.dl.warn li::before{color:var(--yellow);content:'⚠';font-size:11px;top:6px}
+.dl.done li::before{color:var(--green);content:'✓'}
+.dl.todo li::before{color:var(--yellow);content:'○'}
+.dept-bar{display:flex;align-items:center;gap:10px;background:var(--blue-dim);border-left:4px solid var(--blue);padding:9px 14px;border-radius:0 7px 7px 0;margin-bottom:14px}
+.dept-bar-name{font-weight:700;font-size:13.5px}
+.page{display:none}
+.page.active{display:block}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--ch2);color:#fff;padding:11px 16px;border-radius:8px;font-size:13px;font-weight:500;display:flex;align-items:center;gap:8px;box-shadow:0 4px 20px rgba(0,0,0,.2);z-index:999;transform:translateY(60px);opacity:0;transition:all .3s}
+.toast.show{transform:translateY(0);opacity:1}
+.pb{height:6px;border-radius:99px;background:var(--g2);overflow:hidden;margin-top:5px}
+.pb-fill{height:100%;border-radius:99px;background:var(--blue);transition:width .5s}
+.reminder-card{background:linear-gradient(135deg,var(--blue-dim) 0%,#fff 60%);border:1px solid var(--blue-2);border-radius:var(--r);padding:13px 17px;margin-bottom:16px}
+.reminder-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--blue);margin-bottom:8px}
+.reminder-items{display:flex;flex-direction:column;gap:6px}
+.reminder-item{display:flex;align-items:center;gap:10px;font-size:13px}
+.rem-date{font-size:11px;font-weight:600;color:var(--blue-d);background:var(--blue-dim);padding:2px 8px;border-radius:4px;white-space:nowrap;min-width:78px;text-align:center}
+.rem-name{flex:1}
+.rem-days{font-size:11px;font-weight:600;color:var(--yellow)}
+.cal-year-strip{display:flex;gap:4px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px;scrollbar-width:none}
+.cal-year-strip::-webkit-scrollbar{display:none}
+.cal-chip{flex-shrink:0;padding:5px 13px;border-radius:99px;font-size:12px;font-weight:500;background:var(--g2);color:var(--g4);cursor:pointer;transition:all .12s;border:1px solid transparent}
+.cal-chip:hover{background:var(--blue-dim);color:var(--blue-d)}
+.cal-chip.active{background:var(--blue);color:#fff}
+.cal-chip.has-ev::after{content:'';display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--yellow);margin-left:5px;vertical-align:middle;margin-top:-2px}
+.cal-grid{display:flex;flex-direction:column;gap:8px}
+.cal-row{display:flex;gap:6px}
+.cal-wlbl{width:52px;flex-shrink:0;font-size:11px;font-weight:600;color:var(--g4);padding-top:9px}
+.cal-evts{display:flex;flex-direction:column;gap:4px;flex:1}
+.cal-ev{border-radius:5px;padding:5px 10px;font-size:12px;font-weight:500;line-height:1.3;cursor:pointer}
+.cal-ev:hover{opacity:.82}
+.cal-ev.homecare{background:#ddf4e8;color:#1a7a45;border-left:3px solid var(--green)}
+.cal-ev.hpv{background:var(--purple-bg);color:#6b2db5;border-left:3px solid var(--purple)}
+.cal-ev.wag{background:var(--blue-dim);color:var(--blue-d);border-left:3px solid var(--blue)}
+.cal-ev.standalone{background:#fff3e0;color:#c05c00;border-left:3px solid var(--yellow)}
+.cal-ev.promo{background:var(--red-bg);color:#b02020;border-left:3px solid var(--red)}
+.cal-legend{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.cal-leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--g4)}
+.cal-leg-dot{width:8px;height:8px;border-radius:2px}
+.prog-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.prog-card{background:var(--white);border:1px solid var(--g2);border-radius:var(--r);overflow:hidden;cursor:pointer;transition:all .15s;box-shadow:var(--sh)}
+.prog-card:hover{border-color:var(--blue);transform:translateY(-2px);box-shadow:0 4px 20px rgba(52,182,248,.15)}
+.prog-card-top{padding:16px 16px 12px;border-bottom:1px solid var(--g2)}
+.prog-icon{font-size:24px;margin-bottom:8px}
+.prog-name{font-weight:700;font-size:13.5px;margin-bottom:3px}
+.prog-desc{font-size:11px;color:var(--g4);line-height:1.4}
+.prog-card-body{padding:12px 16px}
+.prog-sub{display:flex;flex-direction:column;gap:5px}
+.prog-sub-item{display:flex;align-items:center;gap:8px;font-size:12px;padding:5px 0;border-bottom:1px solid var(--g2)}
+.prog-sub-item:last-child{border-bottom:none}
+.prog-sub-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.promo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.promo-card{background:var(--white);border:1px solid var(--g2);border-radius:8px;padding:13px 15px;cursor:pointer;transition:all .15s;box-shadow:var(--sh)}
+.promo-card:hover{border-color:var(--blue);transform:translateY(-1px)}
+.promo-tag{font-size:10px;font-weight:600;color:var(--g4);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
+.promo-name{font-weight:600;font-size:13px;margin-bottom:4px}
+.promo-parent{font-size:10.5px;color:var(--blue-d);background:var(--blue-dim);padding:1px 7px;border-radius:4px;display:inline-block}
+.klinik-section-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--g4);margin:0 0 10px;padding-bottom:6px;border-bottom:1px solid var(--g2)}
+.klinik-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:11px;margin-bottom:20px}
+.klinik-card{background:var(--white);border:1px solid var(--g2);border-radius:var(--r);padding:14px;cursor:pointer;transition:all .14s;position:relative}
+.klinik-card:hover{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-dim);transform:translateY(-1px)}
+.klinik-card.induk{border-left:4px solid var(--blue)}
+.klinik-card.homecare-card{border-left:4px solid var(--green)}
+.klinik-icon{font-size:22px;margin-bottom:7px}
+.klinik-name{font-weight:600;font-size:12.5px;margin-bottom:3px}
+.klinik-loc{font-size:11px;color:var(--g4);margin-bottom:7px;line-height:1.4}
+.klinik-hours{font-size:10.5px;font-family:var(--mono);color:var(--ch)}
+.klinik-dot{position:absolute;top:10px;right:10px;width:7px;height:7px;border-radius:50%;background:var(--green)}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.28);backdrop-filter:blur(4px);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .18s}
+.overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--white);border-radius:13px;width:520px;max-width:95vw;max-height:80vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.14);transform:translateY(14px);transition:transform .18s}
+.overlay.open .modal{transform:translateY(0)}
+.modal-hdr{padding:18px 22px 14px;border-bottom:1px solid var(--g2);display:flex;align-items:flex-start;justify-content:space-between}
+.modal-title{font-size:15px;font-weight:700}
+.modal-sub{font-size:12px;color:var(--g4);margin-top:2px}
+.modal-close{background:var(--g1);border:none;width:27px;height:27px;border-radius:6px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center}
+.modal-body{padding:18px 22px}
+.msec-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--blue);margin-bottom:8px}
+.info-row{display:flex;gap:8px;margin-bottom:6px;font-size:13px}
+.info-lbl{color:var(--g4);min-width:100px;flex-shrink:0}
+.update-entry{border-left:2px solid var(--blue-dim);padding:7px 11px;margin-bottom:7px;border-radius:0 5px 5px 0}
+.update-week{font-size:10px;font-weight:600;color:var(--blue);margin-bottom:3px}
+.update-link{font-size:12.5px;color:var(--blue-d);text-decoration:none}
+.update-link:hover{text-decoration:underline}
+.tl-card{background:var(--white);border:1px solid var(--g2);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;margin-bottom:16px}
+.tl-inner{padding:16px 18px;overflow-x:auto}
+.tl-grid{display:grid;grid-template-columns:120px repeat(12,1fr);gap:1px;min-width:700px}
+.tl-corner{font-size:10px;font-weight:600;color:var(--g4);padding:6px 0;display:flex;align-items:flex-end}
+.tl-month{font-size:10px;font-weight:600;color:var(--g4);text-align:center;padding:6px 2px;border-bottom:1px solid var(--g2)}
+.tl-month.cur{color:var(--blue-d);font-weight:700}
+.tl-rowlbl{display:flex;align-items:center;gap:7px;font-size:12px;padding:4px 0;color:var(--ch);white-space:nowrap}
+.tl-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.tl-cell{position:relative;height:36px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:2px;cursor:default;border-radius:3px}
+.tl-cell.cur{background:rgba(52,182,248,.05)}
+.tl-cell.empty{background:transparent}
+.tl-bar{display:block;width:80%;border-radius:3px 3px 0 0;transition:opacity .12s}
+.tl-bar.s-1{height:30%}.tl-bar.s-2{height:55%}.tl-bar.s-3{height:80%}
+.tl-bar.done{background:var(--g3)}.tl-bar.active{background:var(--blue)}.tl-bar.planned{background:var(--blue);opacity:.3}
+.tl-count{position:absolute;top:2px;right:3px;font-size:9px;font-family:var(--mono);color:var(--g4)}
+.tl-cell:hover .tl-tooltip{display:block}
+.tl-tooltip{display:none;position:absolute;top:-52px;left:50%;transform:translateX(-50%);background:var(--ch2);color:#fff;padding:6px 10px;border-radius:6px;font-size:11px;white-space:nowrap;z-index:10;pointer-events:none;line-height:1.5}
+.tl-tooltip::after{content:'';position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);border:5px solid transparent;border-bottom:0;border-top-color:var(--ch2)}
+.tl-legend{display:flex;align-items:center;gap:14px;padding:8px 18px 12px;border-top:1px solid var(--g2)}
+.tl-leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--g4)}
+.tl-leg-sw{width:12px;height:5px;border-radius:2px}
+.week-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.kpi-row{display:flex;gap:10px}
+.kpi{flex:1;background:var(--g1);border-radius:8px;padding:12px 13px;border:1px solid var(--g2)}
+.kpi-val{font-size:26px;font-weight:600;line-height:1}
+.kpi-lbl{font-size:11px;color:var(--g4);margin-top:3px}
+.kpi-delta{font-size:11px;font-weight:600}
+.kpi-delta.up{color:var(--green)}.kpi-delta.down{color:var(--red)}.kpi-delta.flat{color:var(--g4)}
+.reminders{background:var(--white);border:1px solid var(--g2);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden}
+.rem-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--g2)}
+.rem-head h3{font-size:13px;font-weight:600}
+.rem-count{font-size:11px;color:var(--g4)}
+.reminder{display:flex;align-items:flex-start;gap:10px;padding:10px 16px;cursor:pointer;border-bottom:1px solid var(--g2);transition:background .1s}
+.reminder:last-child{border-bottom:none}
+.reminder:hover{background:var(--g1)}
+.reminder.done .rem-text{text-decoration:line-through;color:var(--g4)}
+.rem-check{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--g3);flex-shrink:0;margin-top:1px;transition:all .12s;display:flex;align-items:center;justify-content:center;font-size:10px}
+.reminder.done .rem-check{background:var(--green);border-color:var(--green);color:#fff}
+.rem-text{font-size:13px;line-height:1.4}
+.rem-meta{display:flex;align-items:center;gap:6px;margin-top:3px}
+.prio-dot{width:6px;height:6px;border-radius:50%}
+.prio-dot.high{background:var(--red)}.prio-dot.med{background:var(--yellow)}.prio-dot.low{background:var(--g4)}
+.rem-due{font-size:11px;color:var(--g4)}
+.funnel-row{display:flex;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--g2);margin-bottom:16px}
+.funnel-stage{flex:1;padding:14px 8px;text-align:center;cursor:pointer;transition:all .14s;border-right:1px solid rgba(0,0,0,.05)}
+.funnel-stage:last-child{border-right:none}
+.funnel-stage:hover{filter:brightness(.97)}
+.funnel-stage.is-active{outline:2px solid var(--blue);outline-offset:-2px;z-index:1}
+.fs-top{display:flex;align-items:center;justify-content:center;gap:4px;margin-bottom:4px}
+.fs-label{font-size:11px;font-weight:600;color:var(--g4)}
+.fs-arrow{font-size:11px;color:var(--g3)}
+.fs-count{font-size:28px;font-weight:700;line-height:1}
+.fs-sub{font-size:10px;color:var(--g4);margin-top:2px}
+.fs-bar{height:3px;border-radius:99px;background:rgba(0,0,0,.06);margin-top:8px;overflow:hidden}
+.fs-bar-fill{height:100%;border-radius:99px;background:var(--blue)}
+.s-all{background:#f0f4ff}.s-contacted{background:#dbeafe}.s-warm{background:#fef3c7}
+.s-cold{background:var(--g1)}.s-rejected{background:var(--red-bg)}
+.table-card{background:var(--white);border:1px solid var(--g2);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;margin-bottom:16px}
+.table-toolbar{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--g2)}
+.table-search{display:flex;align-items:center;gap:7px;background:var(--g1);border:1px solid var(--g2);border-radius:7px;padding:5px 10px;flex:1;max-width:320px}
+.table-search input{border:none;background:transparent;font-family:var(--font);font-size:13px;color:var(--ch);outline:none;width:100%}
+.tbl-count{font-size:12px;color:var(--g4);margin-left:auto}
+.filter-pill{display:flex;align-items:center;gap:5px;background:var(--blue-dim);color:var(--blue-d);font-size:12px;font-weight:500;padding:3px 10px;border-radius:99px}
+.filter-pill .x{cursor:pointer;font-size:14px;opacity:.7}
+.filter-pill .x:hover{opacity:1}
+.lead-table{width:100%;border-collapse:collapse;font-size:13px}
+.lead-table th{background:var(--g1);padding:8px 12px;font-size:11px;font-weight:600;color:var(--g4);text-align:left;border-bottom:1px solid var(--g2);cursor:pointer;white-space:nowrap}
+.lead-table th:hover{color:var(--ch)}
+.lead-table td{padding:9px 12px;border-bottom:1px solid var(--g2);vertical-align:middle}
+.lead-table tr:last-child td{border-bottom:none}
+.lead-table tr:hover td{background:var(--g1);cursor:pointer}
+.lead-avatar{width:28px;height:28px;border-radius:50%;background:var(--blue-dim);color:var(--blue-d);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.lead-name-wrap{display:flex;align-items:center;gap:8px}
+.lead-name-text{font-weight:500;font-size:13px}
+.lead-company{font-size:11px;color:var(--g4)}
+.stage-pill{display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px}
+.stage-pill.new{background:var(--g2);color:var(--g4)}
+.stage-pill.warm{background:#fef3c7;color:#92400e}
+.stage-pill.cold{background:var(--g1);color:var(--g4)}
+.stage-pill.rejected{background:var(--red-bg);color:var(--red)}
+.stage-pill.contacted{background:var(--blue-dim);color:var(--blue-d)}
+.stage-pill.won{background:var(--green-bg);color:var(--green)}
+.cell-muted{color:var(--g4)}
+.cell-mono{font-family:var(--mono);font-size:12px}
+.sort-arrow{opacity:.5;margin-left:3px}
+.sorted .sort-arrow{opacity:1;color:var(--blue)}
+.drawer{position:fixed;right:0;top:0;bottom:0;width:340px;background:var(--white);box-shadow:-4px 0 24px rgba(0,0,0,.1);z-index:150;transform:translateX(100%);transition:transform .2s;overflow-y:auto}
+.drawer.open{transform:translateX(0)}
+.drawer-hdr{padding:18px 20px 14px;border-bottom:1px solid var(--g2);display:flex;align-items:flex-start;justify-content:space-between}
+.drawer-name{font-size:15px;font-weight:700}
+.drawer-sub{font-size:12px;color:var(--g4);margin-top:2px}
+.drawer-close{background:var(--g1);border:none;width:27px;height:27px;border-radius:6px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
+.drawer-body{padding:18px 20px}
+.drawer-field{display:grid;grid-template-columns:100px 1fr;gap:4px;margin-bottom:10px;align-items:start}
+.drawer-field-label{font-size:11px;color:var(--g4);padding-top:1px}
+.drawer-field-value{font-size:13px}
+.drawer-actions{display:flex;gap:8px;margin-top:16px}
+.drawer-btn{flex:1;padding:8px;border-radius:7px;border:1px solid var(--g3);background:var(--g1);font-family:var(--font);font-size:12px;cursor:pointer;transition:background .1s}
+.drawer-btn:hover{background:var(--g2)}
+.drawer-btn.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.drawer-btn.primary:hover{background:var(--blue-d)}
+.report-month-group{margin-bottom:24px}
+.report-month-title{font-size:13px;font-weight:700;color:var(--ch);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--g2)}
+.report-week-row{display:flex;align-items:center;gap:12px;padding:11px 16px;background:var(--white);border:1px solid var(--g2);border-radius:8px;margin-bottom:7px;transition:border-color .12s}
+.report-week-row:hover{border-color:var(--blue-2)}
+.report-week-name{flex:1;font-size:13px;font-weight:500}
+.report-week-range{font-size:12px;color:var(--g4)}
+.report-dl-btn{display:flex;align-items:center;gap:6px;padding:6px 14px;background:var(--blue);color:#fff;border:none;border-radius:7px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;transition:background .12s}
+.report-dl-btn:hover{background:var(--blue-d)}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--g3);border-radius:99px}
+</style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="sb-logo">
+    <div class="sb-dot"></div>
+    <span class="sb-wordmark">OneKlinik</span>
+    <span class="sb-ops">Ops</span>
+  </div>
+  <div class="sb-lbl">Departments</div>
+  <div class="nav active" onclick="go('marketing')"><span class="nav-ic">📊</span>Marketing</div>
+  <div class="nav" onclick="go('finance')"><span class="nav-ic">💰</span>Finance</div>
+  <div class="nav" onclick="go('am')"><span class="nav-ic">🏥</span>Account Manager</div>
+  <div class="nav" onclick="go('bd')"><span class="nav-ic">🤝</span>Business Dev</div>
+  <div class="nav" onclick="go('hr')"><span class="nav-ic">👥</span>Human Resources</div>
+  <div class="sb-lbl">Reports</div>
+  <div class="nav" onclick="go('reports')"><span class="nav-ic">📄</span>Weekly Reports</div>
+  <div class="sb-footer">
+    <strong id="sb-week">Loading…</strong>
+    <span id="sync-time">Connecting to Notion…</span>
+  </div>
+</nav>
+
+<div class="main">
+  <header class="topbar">
+    <div class="tb-title" id="tb-title">Marketing</div>
+    <span class="tb-week" id="tb-week">—</span>
+    <span class="tb-date" id="tb-date">—</span>
+    <button class="sync-btn" onclick="syncData()" title="Sync from Notion">↻ Sync</button>
+  </header>
+
+  <div class="content">
+
+  <!-- MARKETING -->
+  <div class="page active" id="page-marketing">
+    <div class="reminder-card">
+      <div class="reminder-lbl">🔔 Upcoming — Next 30 Days</div>
+      <div class="reminder-items" id="mktg-upcoming">
+        <div class="reminder-item"><span class="rem-date">—</span><span class="rem-name">Loading calendar…</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h">
+        <span class="card-t">Marketing Calendar 2026</span>
+        <div class="cal-legend">
+          <div class="cal-leg-item"><div class="cal-leg-dot" style="background:#1a7a45"></div>Homecare</div>
+          <div class="cal-leg-item"><div class="cal-leg-dot" style="background:var(--purple)"></div>HPV</div>
+          <div class="cal-leg-item"><div class="cal-leg-dot" style="background:var(--blue)"></div>WAG</div>
+          <div class="cal-leg-item"><div class="cal-leg-dot" style="background:var(--yellow)"></div>Standalone</div>
+          <div class="cal-leg-item"><div class="cal-leg-dot" style="background:var(--red)"></div>Promo</div>
+        </div>
+      </div>
+      <div class="card-b">
+        <div class="cal-year-strip" id="year-strip"></div>
+        <div id="cal-content" class="cal-grid"></div>
+      </div>
+    </div>
+    <div class="g2">
+      <div class="card" style="margin-bottom:0">
+        <div class="card-h"><span class="card-t">Key Updates</span></div>
+        <div class="card-b">
+          <div class="sec-lbl">Highlights</div>
+          <ul class="dl" id="mktg-highlights">
+            <li>Loading from Notion…</li>
+          </ul>
+          <div class="divider"></div>
+          <div class="sec-lbl">Issues &amp; Risks</div>
+          <ul class="dl warn" id="mktg-issues">
+            <li>Loading…</li>
+          </ul>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:0">
+        <div class="card-h"><span class="card-t">Action Items</span></div>
+        <div class="card-b" style="padding:0">
+          <table>
+            <thead><tr><th>Item</th><th>Owner</th><th>Due</th></tr></thead>
+            <tbody id="mktg-actions"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:24px">
+      <div class="dept-bar"><span class="dept-bar-name">📋 Programs</span></div>
+      <div class="prog-grid" id="prog-grid"></div>
+      <div class="dept-bar"><span class="dept-bar-name">🏷️ Promo</span></div>
+      <div class="promo-grid" id="promo-grid"></div>
+    </div>
+  </div>
+
+  <!-- FINANCE -->
+  <div class="page" id="page-finance">
+    <div class="g2">
+      <div class="card" style="margin-bottom:0">
+        <div class="card-h"><span class="card-t">Finance — Weekly Update</span></div>
+        <div class="card-b">
+          <ul class="dl" id="finance-highlights"><li>Loading…</li></ul>
+          <div class="divider"></div>
+          <div class="sec-lbl">Issues</div>
+          <ul class="dl warn" id="finance-issues"><li>Loading…</li></ul>
+          <div class="divider"></div>
+          <div class="sec-lbl">Action Items</div>
+          <table><thead><tr><th>Item</th><th>Owner</th><th>Due</th></tr></thead>
+          <tbody id="finance-actions"></tbody></table>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:0">
+        <div class="card-h">
+          <span class="card-t">General Affair (GA)</span>
+          <span class="badge b-grey" style="font-size:10px">Under Finance</span>
+        </div>
+        <div class="card-b">
+          <div class="sec-lbl">Weekly Update</div>
+          <ul class="dl" id="ga-highlights"><li>Loading…</li></ul>
+          <div class="divider"></div>
+          <div class="sec-lbl">Pending / Notes</div>
+          <ul class="dl warn" id="ga-issues"><li>Loading…</li></ul>
+          <div class="divider"></div>
+          <div class="sec-lbl">Action Items</div>
+          <table><thead><tr><th>Item</th><th>Owner</th><th>Due</th></tr></thead>
+          <tbody id="ga-actions"></tbody></table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACCOUNT MANAGER -->
+  <div class="page" id="page-am">
+    <div class="card">
+      <div class="card-h">
+        <span class="card-t">IHC Client Portfolio</span>
+        <span class="badge b-blue">8 Entitas</span>
+      </div>
+      <div class="card-b">
+        <div class="klinik-section-lbl">🏥 Klinik &amp; IHC</div>
+        <div class="klinik-grid" id="klinik-grid"></div>
+        <div class="klinik-section-lbl">🏠 Homecare</div>
+        <div class="klinik-grid" id="homecare-grid"></div>
+      </div>
+    </div>
+    <div class="g2">
+      <div class="card" style="margin-bottom:0">
+        <div class="card-h"><span class="card-t">Weekly Update</span></div>
+        <div class="card-b">
+          <ul class="dl" id="am-highlights"><li>Loading…</li></ul>
+          <div class="divider"></div>
+          <div class="sec-lbl">Issues</div>
+          <ul class="dl warn" id="am-issues"><li>Loading…</li></ul>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:0">
+        <div class="card-h"><span class="card-t">Action Items</span></div>
+        <div class="card-b" style="padding:0">
+          <table><thead><tr><th>Item</th><th>Owner</th><th>Due</th></tr></thead>
+          <tbody id="am-actions"></tbody></table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BD -->
+  <div class="page" id="page-bd">
+    <div style="margin-bottom:6px">
+      <div style="font-size:12px;font-weight:700;color:var(--g4);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">01 — Year Timeline</div>
+      <div style="font-size:12px;color:var(--g4);margin-bottom:10px">Outreach activity by channel · Jan – Dec</div>
+    </div>
+    <div class="tl-card">
+      <div class="tl-inner"><div class="tl-grid" id="tl-grid"></div></div>
+      <div class="tl-legend">
+        <span class="tl-leg-item"><span class="tl-leg-sw" style="background:var(--g3)"></span>Done</span>
+        <span class="tl-leg-item"><span class="tl-leg-sw" style="background:var(--blue)"></span>Active</span>
+        <span class="tl-leg-item"><span class="tl-leg-sw" style="background:var(--blue);opacity:.3"></span>Planned</span>
+        <span style="margin-left:auto;color:var(--g4);font-family:var(--mono);font-size:10px">Bar height = volume · Number = touches</span>
+      </div>
+    </div>
+    <div style="font-size:12px;font-weight:700;color:var(--g4);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">02 — This Week</div>
+    <div class="week-grid">
+      <div><div class="kpi-row" id="bd-kpis"></div></div>
+      <div class="reminders" id="bd-reminders"></div>
+    </div>
+    <div style="font-size:12px;font-weight:700;color:var(--g4);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">03 — Lead Funnel</div>
+    <div style="font-size:12px;color:var(--g4);margin-bottom:12px">Click any stage to filter the database below</div>
+    <div class="funnel-row" id="bd-funnel"></div>
+    <div class="table-card">
+      <div class="table-toolbar">
+        <div class="table-search">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input id="lead-search" placeholder="Search by name, company, notes…" oninput="filterLeads()">
+        </div>
+        <span id="filter-pill-wrap"></span>
+        <span class="tbl-count" id="lead-count"></span>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="lead-table">
+          <thead><tr>
+            <th onclick="sortLeads('name')">Name <span class="sort-arrow">↕</span></th>
+            <th onclick="sortLeads('title')">Title <span class="sort-arrow">↕</span></th>
+            <th onclick="sortLeads('stage')">Stage <span class="sort-arrow">↕</span></th>
+            <th onclick="sortLeads('owner')">Owner <span class="sort-arrow">↕</span></th>
+            <th onclick="sortLeads('channel')">Channel <span class="sort-arrow">↕</span></th>
+            <th>Last Activity</th><th>Next Action</th><th>Notes</th>
+          </tr></thead>
+          <tbody id="lead-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- HR -->
+  <div class="page" id="page-hr">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.x/dist/tabler-icons.min.css">
+    <style>
+      .hr-wrap{display:flex;flex-direction:column;gap:14px}
+      .health-bar{background:var(--white);border:1px solid var(--g2);border-radius:12px;padding:14px 18px;display:flex;align-items:flex-start;gap:16px;box-shadow:var(--sh)}
+      .health-badge{width:40px;height:40px;border-radius:50%;background:#faeeda;border:2px solid #ef9f27;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;margin-top:2px}
+      .health-copy{flex-shrink:0}
+      .health-title{font-size:14px;font-weight:600;margin-bottom:3px}
+      .health-hsub{font-size:12px;color:var(--g4)}
+      .health-div{width:1px;min-height:40px;background:var(--g2);flex-shrink:0;margin-top:2px}
+      .health-pills{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+      .hpill{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:500;padding:4px 10px;border-radius:99px}
+      .hpill-amber{background:#faeeda;color:#7a4300}.hpill-green{background:#e1f5ee;color:#0f6e56}
+      .ceo-flag{background:#faeeda;border:1px solid #fac775;border-radius:8px;padding:13px 16px;display:flex;gap:10px;align-items:flex-start}
+      .ceo-flag-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#7a4300;margin-bottom:4px}
+      .ceo-flag p{font-size:12.5px;color:#633806;line-height:1.55}
+      .hr-3col{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+      .hr-kpi{background:var(--white);border:1px solid var(--g2);border-radius:8px;padding:14px 16px;box-shadow:var(--sh)}
+      .hr-kpi-lbl{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--g4);margin-bottom:8px}
+      .hr-kpi-main{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+      .hr-kpi-val{font-size:24px;font-weight:600;line-height:1}
+      .hr-kpi-val small{font-size:13px;font-weight:400;color:var(--g4)}
+      .hr-kpi-pct{font-size:13px;font-weight:600}
+      .pct-warn{color:#ef9f27}.pct-green{color:#1d9e75}
+      .hr-kbar-bg{height:5px;background:var(--g2);border-radius:99px;margin-bottom:10px;overflow:hidden}
+      .hr-kbar{height:5px;border-radius:99px}
+      .hr-2col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+      .hr-card{background:var(--white);border:1px solid var(--g2);border-radius:12px;padding:14px 16px;box-shadow:var(--sh)}
+      .hr-card-title{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--g4);margin-bottom:12px;display:flex;align-items:center;gap:5px}
+      .impact-row{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--g2)}
+      .impact-row:last-child{border-bottom:none;padding-bottom:0}
+      .impact-icon{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+      .ii-amber{background:#faeeda;color:#c47a00}.ii-green{background:#e1f5ee;color:#0f6e56}.ii-red{background:#fcebeb;color:#b83232}
+      .impact-title{font-size:12.5px;font-weight:500;line-height:1.4}
+      .impact-desc{font-size:11.5px;color:var(--g4);margin-top:2px;line-height:1.5}
+      .itag{font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:99px;display:inline-block;margin-top:4px}
+      .itag-amber{background:#faeeda;color:#7a4300}.itag-green{background:#e1f5ee;color:#0f6e56}.itag-red{background:#fcebeb;color:#791f1f}
+      .hr-funnel-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--g2)}
+      .hr-funnel-row:last-child{border-bottom:none}
+      .hr-funnel-lbl{font-size:12px;color:var(--g4);width:100px;flex-shrink:0}
+      .hr-funnel-bg{flex:1;background:var(--g1);border-radius:99px;height:6px;overflow:hidden}
+      .hr-funnel-bar{height:6px;border-radius:99px}
+      .hr-funnel-n{font-size:12px;font-weight:600;width:18px;text-align:right;flex-shrink:0}
+      .hr-right-col{display:flex;flex-direction:column;gap:14px}
+      .hr-action-row{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--g2)}
+      .hr-action-row:last-of-type{border-bottom:none}
+      .hr-action-task{flex:1;font-size:12.5px;font-weight:500;line-height:1.4}
+      .hr-action-sub{display:block;font-size:11px;font-weight:400;color:var(--g4);margin-top:2px}
+      .hr-owner-tag{font-size:10.5px;font-weight:500;background:var(--g1);color:var(--g4);padding:2px 8px;border-radius:99px;flex-shrink:0}
+      .hr-due-tag{font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:99px;flex-shrink:0}
+      .hr-due-red{background:#fcebeb;color:#791f1f}.hr-due-amber{background:#faeeda;color:#7a4300}.hr-due-gray{background:var(--g1);color:var(--g4)}
+      .hr-footer{display:flex;justify-content:space-between;font-size:11px;color:var(--g4);padding-top:4px}
+    </style>
+    <div class="hr-wrap" id="hr-content">
+      <div class="card">
+        <div class="card-h"><span class="card-t">HR — Weekly Update</span></div>
+        <div class="card-b">
+          <ul class="dl" id="hr-highlights"><li>Loading…</li></ul>
+          <div class="divider"></div>
+          <div class="sec-lbl">Issues</div>
+          <ul class="dl warn" id="hr-issues"><li>Loading…</li></ul>
+          <div class="divider"></div>
+          <div class="sec-lbl">Action Items</div>
+          <table><thead><tr><th>Item</th><th>Owner</th><th>Due</th></tr></thead>
+          <tbody id="hr-actions"></tbody></table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- REPORTS -->
+  <div class="page" id="page-reports">
+    <div class="card">
+      <div class="card-h">
+        <span class="card-t">Weekly Reports</span>
+        <button class="gen-btn" id="gen-btn" onclick="generatePDF()">📄 Generate Weekly PDF</button>
+      </div>
+      <div class="card-b" id="reports-body">
+        <div style="color:var(--g4);font-size:13px">Loading reports…</div>
+      </div>
+    </div>
+  </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- Program/Promo modal -->
+<div class="overlay" id="prog-modal" onclick="if(event.target.id==='prog-modal')closeProgModal()">
+  <div class="modal" style="width:580px">
+    <div class="modal-hdr">
+      <div><div class="modal-title" id="pm-title">—</div><div class="modal-sub" id="pm-sub">—</div></div>
+      <button class="modal-close" onclick="closeProgModal()">&#x2715;</button>
+    </div>
+    <div class="modal-body" id="pm-body"></div>
+  </div>
+</div>
+
+<!-- Lead drawer -->
+<aside class="drawer" id="lead-drawer">
+  <div class="drawer-hdr">
+    <div><div class="drawer-name" id="dr-name">—</div><div class="drawer-sub" id="dr-sub">—</div></div>
+    <button class="drawer-close" onclick="closeDrawer()">✕</button>
+  </div>
+  <div class="drawer-body" id="dr-body"></div>
+</aside>
+
+<!-- Klinik modal -->
+<div class="overlay" id="klinik-modal" onclick="closeModalEv(event)">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div><div class="modal-title" id="mo-name">—</div><div class="modal-sub" id="mo-loc">—</div></div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="mo-body"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast">📄 Generating PDF...</div>
+
+<script>
+const MONTHS = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'];
+
+// ── Static fallback data (overwritten by Notion on load) ─────────────────────
+let CAL_DATA = {
+  '2026-05':[
+    {w:'W1',n:'Sehat Duluan 7',t:'wag',d:'5–25 Mei'},
+    {w:'W2',n:'#JagaDiri 7',t:'hpv',d:'4 Mei – 30 Jun'},
+    {w:'W2',n:'Hari Kartini 7',t:'promo',d:'5–21 Mei'},
+    {w:'W2',n:'Imun Tangguh 7',t:'standalone',d:'4–31 Mei'},
+  ],
+  '2026-06':[
+    {w:'W1',n:'Sehat Duluan 8 (planned)',t:'wag',d:'1 Jun (est)'},
+    {w:'W2',n:'#JagaDiri 8 (planned)',t:'hpv',d:'8 Jun (est)'},
+  ],
+};
+
+const PROGRAMS = [
+  {icon:'💬',name:'WhatsApp Community',desc:'Program sharing & engagement via WAG',color:'var(--blue)',
+   subs:[{name:'Sehat Duluan 7',status:'active',color:'var(--blue)'},{name:'Health Tips Weekly',status:'active',color:'var(--green)'}]},
+  {icon:'🏠',name:'Homecare',desc:'Layanan kunjungan dokter ke rumah',color:'var(--green)',
+   subs:[{name:'Paket Premium (active)',status:'active',color:'var(--green)'},{name:'Batch 2 (planned Jun)',status:'planned',color:'var(--yellow)'}]},
+  {icon:'💉',name:'HPV',desc:'Program vaksinasi & awareness HPV',color:'var(--purple)',
+   subs:[{name:'#JagaDiri 7',status:'active',color:'var(--purple)'},{name:'Promo Hari Kartini 7',status:'promo',color:'var(--red)'}]},
+  {icon:'📋',name:'Healthy Tips Card',desc:'Edukasi kesehatan via konten digital',color:'var(--yellow)',
+   subs:[{name:'Tips Imunitas — Mei',status:'active',color:'var(--yellow)'},{name:'Tips MPASI (planned)',status:'planned',color:'var(--g4)'}]},
+];
+
+const PROMOS = [
+  {tag:'Promo Nasional',name:'Imun Tangguh, Energi Penuh 7',parent:'Hari Pekerja'},
+  {tag:'Promo HPV',name:'Hari Kartini 7',parent:'HPV'},
+  {tag:'Promo Free Consult',name:'Pakubuwono Med Access 7',parent:'IHC Pakubuwono'},
+  {tag:'Promo Community',name:'Sehat Duluan 7 — Early Bird',parent:'WAG Community'},
+];
+
+const KLINIKS = [
+  {id:0,icon:'🏥',name:'Klinik Pratama Sunter',loc:'Jl. Sunter Karya, Jakarta Utara',hours:'Sen–Jum: 09–19 · Sab: 09–15',induk:true,manager:'dr. Reyna Lauwsen',pic_client:'',note:'Induk klinik.',programs:['Sehat Duluan 7','#JagaDiri 7','Hari Kartini 7'],updates:[{w:'Weekly Meeting · 13 Mei 2026',link:'#'}]},
+  {id:1,icon:'🏥',name:'IHC Harris Kelapa Gading',loc:'Lt. Basement, Harris Hotel Kelapa Gading',hours:'24/7',manager:null,pic_client:'Ibu Yovita',note:'—',programs:[],updates:[{w:'Weekly Meeting · 13 Mei 2026',link:'#'}]},
+  {id:2,icon:'🏥',name:'IHC Pasar Baru',loc:'Lt. P5, Apartment Pasar Baru Mansion',hours:'Sen–Jum 08–17',manager:null,pic_client:'Ichwan, Nisya',note:'Dokter: Sel & Kam 13–16.',programs:[],updates:[{w:'Weekly Meeting · 13 Mei 2026',link:'#'}]},
+  {id:3,icon:'🏥',name:'IHC Pakubuwono Spring',loc:'Applewood Tower Lt. LG — Jak. Selatan',hours:'Sen–Jum 13–16',manager:null,pic_client:'Birgitta, Dhea',note:'Onboarding aktif.',programs:['Sehat Duluan 7','#JagaDiri 7'],updates:[{w:'Weekly Meeting · 13 Mei 2026',link:'#'}]},
+  {id:4,icon:'🏥',name:'IHC Pakubuwono House',loc:'Lt. UG, Apartment Pakubuwono House',hours:'Sen–Jum 09–12',manager:null,pic_client:'Agus Rubiyanto, Faldy Irawan',note:'—',programs:['Sehat Duluan 7','#JagaDiri 7','Hari Kartini 7'],updates:[{w:'Weekly Meeting · 13 Mei 2026',link:'#'}]},
+  {id:5,icon:'🏥',name:'IHC SMBC',loc:'Menara SMBC Lt. 27 — Mega Kuningan',hours:'Sen–Jum 08–17',manager:null,pic_client:'Tiara Ardwi, Danesha Galuh',note:'—',programs:['Imun Tangguh 7'],updates:[{w:'Weekly Meeting · 13 Mei 2026',link:'#'}]},
+  {id:6,icon:'🏥',name:'IHC Gojek',loc:'Gd. B Lt. 2, Pasaraya Blok M',hours:'Sen–Jum 09–17',manager:null,pic_client:'Natasya Ezra, Hariska Lukmana',note:'—',programs:['Sehat Duluan 7','#JagaDiri 7','Hari Kartini 7','Imun Tangguh 7'],updates:[{w:'Weekly Meeting · 13 Mei 2026',link:'#'}]},
+];
+
+const HOMECARE_CARD = {id:99,icon:'🏠',name:'Homecare by OneKlinik',loc:'Jakarta, Tangerang & Bekasi',hours:'Booking min. H-1',homecare:true,manager:'dr. Karina',admin:'Aisyah Fajrin M',note:'Paket Basic & Premium.',programs:['Homecare Premium (active)'],updates:[{w:'Weekly Meeting · 13 Mei 2026',link:'#'}]};
+
+const BD_TL_ROWS = [
+  {id:'email',    label:'Email Outreach', color:'#2563EB', plan:[3,3,2,3,3,2,1,1,2,3,3,2]},
+  {id:'linkedin', label:'LinkedIn',       color:'#0A66C2', plan:[2,2,3,3,3,3,2,2,3,3,2,1]},
+  {id:'calls',    label:'Cold Calls',     color:'#EA580C', plan:[1,2,2,1,2,1,0,0,1,2,2,1]},
+  {id:'events',   label:'Events & Conf.', color:'#7C3AED', plan:[0,1,2,0,3,2,0,0,2,3,1,0]},
+  {id:'referral', label:'Referral',       color:'#16A34A', plan:[1,1,1,2,2,2,2,2,2,2,2,2]},
+  {id:'content',  label:'Content/Inbound',color:'#0A0A0A', plan:[2,2,2,3,3,3,2,2,3,3,3,2]},
+];
+
+let BD_FUNNEL = [
+  {id:'all',       label:'Total Leads',   count:0,  sub:'All leads',         cls:'s-all'},
+  {id:'contacted', label:'Contacted',     count:0,  sub:'Reached out',       cls:'s-contacted'},
+  {id:'warm',      label:'Warm',          count:0,  sub:'Positive response', cls:'s-warm'},
+  {id:'cold',      label:'Cold/No Reply', count:0,  sub:'No response',       cls:'s-cold'},
+  {id:'rejected',  label:'Rejected',      count:0,  sub:'Not a fit',         cls:'s-rejected'},
+];
+
+const BD_WEEK = {contacted:0,responses:0,meetings:0,cDelta:0,rDelta:0,mDelta:0};
+
+const BD_REMINDERS = [
+  {id:1,text:'Loading action items from Notion…',due:'—',priority:'low'},
+];
+
+let ALL_LEADS = [];
+let REPORTS = {};
+
+let activeStage='all', leadSearch='', sortCol='name', sortDir='asc';
+let drawerLead=null;
+let remindersState=BD_REMINDERS.map(r=>({...r,done:false}));
+
+// ── Prog/Promo detail data ────────────────────────────────────────────────────
+const PROG_DETAILS = {
+  wag:{icon:'💬',name:'WhatsApp Community',type:'Program',subs:[
+    {name:'Sehat Duluan 7',status:'active',dates:'5 Mei – 25 Mei 2026',branches:'IHC Pakubuwono House, IHC Pakubuwono Spring, Klinik Sunter, IHC Gojek',tnc:['Program sharing kesehatan mingguan via WAG','Sesi live 30 menit tiap Selasa jam 19.00','Free, tidak dipungut biaya'],todoDone:['Registrasi peserta dibuka','Konten reminder WAG dijadwalkan'],todoPending:['Push konten reminder batch ke-2','Rekap registrasi akhir minggu'],bottleneck:null,support:null},
+    {name:'Health Tips Weekly',status:'active',dates:'Ongoing (setiap Jumat)',branches:'Online (WAG)',tnc:['Konten tips kesehatan dikirim tiap Jumat pagi','Format: infografis + teks singkat'],todoDone:['Template konten tersedia'],todoPending:['Susun konten Mei minggu ke-3 & ke-4'],bottleneck:null,support:null},
+  ]},
+  homecare:{icon:'🏠',name:'Homecare',type:'Program',subs:[
+    {name:'Paket Premium (Active)',status:'active',dates:'Mulai 1 Apr 2026 – ongoing',branches:'Jakarta Selatan & Jakarta Pusat (via Klinik Sunter)',tnc:['Paket: kunjungan dokter, perawatan luka, monitoring harian','Harga: Rp 450.000/kunjungan (basic) · Rp 850.000 (premium)','Booking minimal H-1'],todoDone:['Drafting konten sosmed campaign','Setup Meta Ads campaign pertama'],todoPending:['Konfirmasi Credit Card Meta Ads ke-2','Analisis & perbaiki CTA landing page'],bottleneck:'Meta Ads ke-2 tertahan — verifikasi Credit Card belum selesai.',support:'Konfirmasi Credit Card dari Finance/Pak Marvin — urgent.'},
+    {name:'Batch 2 (Planned Jun)',status:'planned',dates:'Target launch: 1 Juni 2026',branches:'Jakarta, Tangerang, Bekasi (ekspansi)',tnc:['Ekspansi area ke Tangerang & Bekasi','Target: 50 pasien bulan pertama'],todoDone:[],todoPending:['Finalisasi SOP Batch 2','Rekrut 2 perawat tambahan'],bottleneck:null,support:null},
+  ]},
+  hpv:{icon:'💉',name:'HPV',type:'Program',subs:[
+    {name:'#JagaDiri 7',status:'active',dates:'4 Mei – 30 Jun 2026',branches:'Klinik Sunter, IHC Gojek, IHC Pakubuwono House, IHC Pakubuwono Spring',tnc:['Vaksinasi HPV 2–4 dosis, usia 15–45 tahun','Harga spesial: Rp 650.000/dosis (normal Rp 850.000)'],todoDone:['Program aktif & pendaftaran dibuka'],todoPending:['Monitor peserta per klinik','Evaluasi minggu ke-2'],bottleneck:null,support:null},
+    {name:'Promo Hari Kartini 7',status:'active',dates:'5 Mei – 21 Mei 2026',branches:'Klinik Sunter, IHC Pakubuwono Spring, IHC Pakubuwono House, IHC Gojek',tnc:['Promo khusus Hari Kartini: diskon 20% vaksin HPV','Terbatas 30 slot per klinik'],todoDone:['Konten promo final','Distribusi dimulai 5 Mei'],todoPending:['Monitor engagement','Rekap performa akhir bulan'],bottleneck:null,support:null},
+  ]},
+  htc:{icon:'📋',name:'Healthy Tips Card',type:'Program',subs:[
+    {name:'Tips Imunitas — Mei',status:'active',dates:'Setiap Jumat Mei 2026',branches:'Online (WAG + IG)',tnc:['4 seri konten tips imunitas sepanjang Mei'],todoDone:['Tips minggu 1 & 2 sudah publish'],todoPending:['Buat tips minggu 3 & 4'],bottleneck:null,support:null},
+    {name:'Tips MPASI (Planned)',status:'planned',dates:'Target: Juni 2026',branches:'Online (WAG + IG)',tnc:['Seri konten MPASI untuk ibu dengan bayi 6–12 bulan'],todoDone:[],todoPending:['Finalisasi brief konten'],bottleneck:null,support:null},
+  ]},
+};
+
+const PROMO_DETAILS = [
+  {name:'Imun Tangguh, Energi Penuh 7',tag:'Promo Hari Pekerja',parent:'Standalone',status:'active',dates:'4 Mei – 31 Mei 2026',branches:'IHC SMBC, IHC Gojek, IHC Pakubuwono House, IHC Pakubuwono Spring',tnc:['Promo khusus karyawan perusahaan mitra','Paket cek kesehatan: Rp 75.000'],todoDone:['Program aktif','Koordinasi HR mitra selesai'],todoPending:['Monitor partisipasi per klinik'],bottleneck:null,support:null},
+  {name:'Hari Kartini 7',tag:'Promo HPV',parent:'HPV',status:'active',dates:'5 Mei – 21 Mei 2026',branches:'Klinik Sunter, IHC Pakubuwono Spring, IHC Pakubuwono House, IHC Gojek',tnc:['Diskon 20% vaksin HPV untuk perempuan 17–45 tahun','Terbatas 30 slot per klinik'],todoDone:['Konten promo final','Distribusi dimulai 5 Mei'],todoPending:['Monitor engagement'],bottleneck:null,support:null},
+  {name:'Pakubuwono Med Access (PMA) 7',tag:'Promo Free Consult',parent:'IHC Pakubuwono',status:'active',dates:'28 Apr – 9 Mei 2026',branches:'IHC Pakubuwono Spring, IHC Pakubuwono House',tnc:['Free konsultasi dokter untuk resident Pakubuwono','Berlaku 1x per resident per periode'],todoDone:['Promo sudah live'],todoPending:['Rekap total konsultasi akhir periode'],bottleneck:null,support:null},
+  {name:'Sehat Duluan 7 — Early Bird',tag:'Promo Community',parent:'WAG Community',status:'expired',dates:'1 Mei – 4 Mei 2026',branches:'IHC Pakubuwono House, IHC Pakubuwono Spring, Klinik Sunter',tnc:['Early bird: daftar program WAG sebelum 4 Mei dapat merchandise'],todoDone:['Promo selesai','Kuota terisi penuh (50/50)'],todoPending:[],bottleneck:null,support:null},
+];
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+let seed=42;
+const rng=()=>{seed=(seed*9301+49297)%233280;return seed/233280};
+
+function renderSubDetail(s){
+  const done=s.todoDone||[],pend=s.todoPending||[];
+  const pct=(done.length+pend.length)>0?Math.round(done.length/(done.length+pend.length)*100):0;
+  const statusBadge=s.status==='active'?'<span class="badge b-green" style="font-size:10px">🟢 Active</span>':s.status==='expired'?'<span class="badge b-grey" style="font-size:10px">⚫ Expired</span>':'<span class="badge b-yellow" style="font-size:10px">🟡 Planned</span>';
+  return `<div style="margin-bottom:4px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><strong style="font-size:13.5px">${s.name}</strong>${statusBadge}</div>${s.dates?`<div style="font-size:12px;color:var(--g4);margin-bottom:4px">📅 ${s.dates}</div>`:''} ${s.branches?`<div style="font-size:12px;color:var(--g4);margin-bottom:10px">📍 ${s.branches}</div>`:''}</div>${s.tnc&&s.tnc.length?`<div class="msec-title">TnC Program</div><ul style="list-style:none;margin-bottom:12px">${s.tnc.map(t=>`<li style="padding:4px 0 4px 14px;position:relative;font-size:13px;line-height:1.5;border-bottom:1px solid var(--g2)"><span style="position:absolute;left:0;color:var(--blue)">•</span>${t}</li>`).join('')}</ul>`:''}${done.length||pend.length?`<div class="msec-title">To-Do</div><ul style="list-style:none;margin-bottom:8px">${done.map(t=>`<li style="padding:4px 0 4px 16px;position:relative;font-size:13px;line-height:1.5;border-bottom:1px solid var(--g2)"><span style="position:absolute;left:0;color:var(--green)">✓</span>${t}</li>`).join('')}${pend.map(t=>`<li style="padding:4px 0 4px 16px;position:relative;font-size:13px;line-height:1.5;border-bottom:1px solid var(--g2)"><span style="position:absolute;left:0;color:var(--yellow)">○</span>${t}</li>`).join('')}</ul><div style="font-size:11px;color:var(--g4);margin-bottom:4px">Progress: ${done.length}/${done.length+pend.length} (${pct}%)</div><div style="height:6px;border-radius:99px;background:var(--g2);overflow:hidden;margin-bottom:10px"><div style="height:100%;border-radius:99px;background:${pct===100?'var(--green)':'var(--blue)'};width:${pct}%"></div></div>`:''} ${s.bottleneck?`<div style="background:var(--yellow-bg);border-left:3px solid var(--yellow);border-radius:0 6px 6px 0;padding:8px 12px;margin-bottom:8px;font-size:13px">⚠ <strong>Bottleneck:</strong> ${s.bottleneck}</div>`:''} ${s.support?`<div style="background:var(--blue-dim);border-left:3px solid var(--blue);border-radius:0 6px 6px 0;padding:8px 12px;font-size:13px">→ <strong>Support Needed:</strong> ${s.support}</div>`:''}`;
+}
+
+function openProgDetail(key){const p=PROG_DETAILS[key];if(!p)return;document.getElementById('pm-title').textContent=p.icon+' '+p.name;document.getElementById('pm-sub').textContent=p.type+' · '+p.subs.length+' sub-program';document.getElementById('pm-body').innerHTML=p.subs.map(s=>renderSubDetail(s)).join('<hr style="border:none;border-top:1px solid var(--g2);margin:14px 0">');document.getElementById('prog-modal').classList.add('open');}
+function openSubDetail(key,i){const p=PROG_DETAILS[key];if(!p)return;const s=p.subs[i];document.getElementById('pm-title').textContent=s.name;document.getElementById('pm-sub').textContent=p.name+' · '+(s.status==='active'?'🟢 Active':s.status==='expired'?'⚫ Expired':'🟡 Planned');document.getElementById('pm-body').innerHTML=renderSubDetail(s);document.getElementById('prog-modal').classList.add('open');}
+function openPromoDetail(i){const p=PROMO_DETAILS[i];document.getElementById('pm-title').textContent=p.name;document.getElementById('pm-sub').textContent=p.tag+' · under '+p.parent+' · '+(p.status==='active'?'🟢 Active':'⚫ Expired');document.getElementById('pm-body').innerHTML=renderSubDetail(p);document.getElementById('prog-modal').classList.add('open');}
+function closeProgModal(){document.getElementById('prog-modal').classList.remove('open');}
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+const PAGE_TITLES={marketing:'Marketing',finance:'Finance',am:'Account Manager',bd:'Business Development',hr:'Human Resources',reports:'Weekly Reports'};
+function go(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  document.querySelectorAll('.nav').forEach(n=>{if(n.getAttribute('onclick')===`go('${page}')`)n.classList.add('active');});
+  document.getElementById('tb-title').textContent=PAGE_TITLES[page]||page;
+}
+
+// ── Calendar ──────────────────────────────────────────────────────────────────
+let activeMonth='2026-05';
+function buildYearStrip(){
+  const strip=document.getElementById('year-strip');
+  strip.innerHTML='';
+  for(let m=1;m<=12;m++){
+    const key=`2026-${String(m).padStart(2,'0')}`;
+    const chip=document.createElement('div');
+    chip.className='cal-chip'+(key===activeMonth?' active':'');
+    const evs=CAL_DATA[key]||[];
+    if(evs.length&&key!==activeMonth)chip.classList.add('has-ev');
+    chip.textContent=MONTHS[m-1];
+    chip.onclick=()=>setMonth(key);
+    strip.appendChild(chip);
+  }
+}
+function setMonth(key){
+  activeMonth=key;
+  document.querySelectorAll('.cal-chip').forEach((c,i)=>{
+    const k=`2026-${String(i+1).padStart(2,'0')}`;
+    c.classList.toggle('active',k===key);
+    c.classList.toggle('has-ev',(CAL_DATA[k]||[]).length>0&&k!==key);
+  });
+  renderCal();
+}
+function renderCal(){
+  const evs=CAL_DATA[activeMonth]||[];
+  const[,mo]=activeMonth.split('-').map(Number);
+  const content=document.getElementById('cal-content');
+  if(!evs.length){content.innerHTML=`<div style="color:var(--g4);font-size:13px;padding:12px 0">Tidak ada program terjadwal untuk ${MONTHS[mo-1]}.</div>`;return;}
+  const byW={};
+  evs.forEach(e=>{if(!byW[e.w])byW[e.w]=[];byW[e.w].push(e);});
+  content.innerHTML=Object.entries(byW).map(([w,es])=>`<div class="cal-row"><div class="cal-wlbl">${w}</div><div class="cal-evts">${es.map(e=>`<div class="cal-ev ${e.t}"><span>${e.n}</span>${e.d?`<span style="font-size:10px;opacity:.75;margin-left:6px">📅 ${e.d}</span>`:''}</div>`).join('')}</div></div>`).join('');
+}
+
+// ── Programs & Promos ─────────────────────────────────────────────────────────
+function buildPrograms(){
+  const PROG_KEYS=['wag','homecare','hpv','htc'];
+  const statusColor={active:'var(--green)',planned:'var(--yellow)',expired:'var(--g4)',promo:'var(--red)'};
+  const statusLabel={active:'Active',planned:'Planned',expired:'Expired',promo:'Active'};
+  document.getElementById('prog-grid').innerHTML=PROG_KEYS.map((key)=>{
+    const p=PROG_DETAILS[key];
+    return `<div class="prog-card" onclick="openProgDetail('${key}')"><div class="prog-card-top"><div class="prog-icon">${p.icon}</div><div class="prog-name">${p.name}</div><div class="prog-desc">${p.subs.map(s=>s.name).join(', ')}</div></div><div class="prog-card-body"><div class="prog-sub">${p.subs.map((s,si)=>`<div class="prog-sub-item" onclick="event.stopPropagation();openSubDetail('${key}',${si})" style="cursor:pointer;border-radius:4px"><div style="width:7px;height:7px;border-radius:50%;flex-shrink:0;background:${statusColor[s.status]||'var(--g4)'}"></div><span style="flex:1">${s.name}</span><span style="font-size:9px;font-weight:600;color:${statusColor[s.status]||'var(--g4)'};padding:1px 6px;background:${s.status==='active'?'var(--green-bg)':s.status==='planned'?'var(--yellow-bg)':'var(--g2)'};border-radius:99px">${statusLabel[s.status]||s.status}</span></div>`).join('')}</div></div></div>`;
+  }).join('');
+  document.getElementById('promo-grid').innerHTML=PROMO_DETAILS.map((p,i)=>`<div class="promo-card" onclick="openPromoDetail(${i})"><div class="promo-tag">${p.tag}</div><div class="promo-name">${p.name}</div><div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px"><span class="promo-parent">under ${p.parent}</span><span style="font-size:9px;font-weight:700;color:${p.status==='active'?'var(--green)':'var(--g4)'};background:${p.status==='active'?'var(--green-bg)':'var(--g2)'};padding:2px 7px;border-radius:99px">${p.status==='active'?'Active':'Expired'}</span></div><div style="font-size:10px;color:var(--g4);margin-top:4px">📅 ${p.dates}</div></div>`).join('');
+}
+
+// ── Kliniks ───────────────────────────────────────────────────────────────────
+function buildKliniks(){
+  document.getElementById('klinik-grid').innerHTML=KLINIKS.map(k=>`<div class="klinik-card${k.induk?' induk':''}" onclick="openModal(${k.id})">${k.updates.length?'<div class="klinik-dot"></div>':''}<div class="klinik-icon">${k.icon}</div><div class="klinik-name">${k.name}${k.induk?' <span style="font-size:9px;color:var(--blue)">(Induk)</span>':''}</div><div class="klinik-loc">${k.loc}</div><div class="klinik-hours">🕐 ${k.hours}</div>${k.programs.length?`<div style="margin-top:8px;display:flex;gap:3px;flex-wrap:wrap">${k.programs.map(pr=>`<span class="badge b-blue" style="font-size:9px">${pr}</span>`).join('')}</div>`:''}</div>`).join('');
+  const hc=HOMECARE_CARD;
+  document.getElementById('homecare-grid').innerHTML=`<div class="klinik-card homecare-card" onclick="openHomecare()"><div class="klinik-dot" style="background:var(--green)"></div><div class="klinik-icon">${hc.icon}</div><div class="klinik-name">${hc.name}</div><div class="klinik-loc">${hc.loc}</div><div class="klinik-hours">🕐 ${hc.hours}</div><div style="margin-top:8px"><span class="badge b-green" style="font-size:9px">Active</span></div></div>`;
+}
+
+function openModal(id){
+  const k=KLINIKS.find(x=>x.id===id);if(!k)return;
+  document.getElementById('mo-name').textContent=k.name;
+  document.getElementById('mo-loc').textContent=k.loc;
+  document.getElementById('mo-body').innerHTML=`<div style="margin-bottom:14px"><div class="msec-title">Info Klinik</div><div class="info-row"><span class="info-lbl">Manager</span><span>${k.manager||'—'}</span></div><div class="info-row"><span class="info-lbl">Jam Operasional</span><span>${k.hours}</span></div><div class="info-row"><span class="info-lbl">PIC Client</span><span>${k.pic_client||'—'}</span></div><div class="info-row"><span class="info-lbl">Catatan</span><span>${k.note}</span></div></div>${k.programs.length?`<div style="margin-bottom:14px"><div class="msec-title">Program Aktif</div><div style="display:flex;gap:5px;flex-wrap:wrap">${k.programs.map(p=>`<span class="badge b-blue">${p}</span>`).join('')}</div></div>`:''}<div><div class="msec-title">Meeting Notes</div>${k.updates.map(u=>`<a class="update-entry" href="${u.link}" target="_blank" style="display:block;text-decoration:none"><div class="update-week">${u.w}</div><div style="font-size:12px;color:var(--blue-d);margin-top:2px">→ Buka di Notion ↗</div></a>`).join('')}</div>`;
+  document.getElementById('klinik-modal').classList.add('open');
+}
+function openHomecare(){
+  const hc=HOMECARE_CARD;
+  document.getElementById('mo-name').textContent=hc.name;
+  document.getElementById('mo-loc').textContent=hc.loc;
+  document.getElementById('mo-body').innerHTML=`<div style="margin-bottom:14px"><div class="msec-title">Info Homecare</div><div class="info-row"><span class="info-lbl">PIC Medis</span><span>${hc.manager}</span></div><div class="info-row"><span class="info-lbl">Admin</span><span>${hc.admin}</span></div><div class="info-row"><span class="info-lbl">Area</span><span>${hc.loc}</span></div><div class="info-row"><span class="info-lbl">Catatan</span><span>${hc.note}</span></div></div><div style="margin-bottom:14px"><div class="msec-title">Paket Aktif</div><div style="display:flex;gap:5px;flex-wrap:wrap">${hc.programs.map(p=>`<span class="badge b-green">${p}</span>`).join('')}</div></div><div><div class="msec-title">Meeting Notes</div>${hc.updates.map(u=>`<a class="update-entry" href="${u.link}" target="_blank" style="display:block;text-decoration:none"><div class="update-week">${u.w}</div><div style="font-size:12px;color:var(--blue-d);margin-top:2px">→ Buka di Notion ↗</div></a>`).join('')}</div>`;
+  document.getElementById('klinik-modal').classList.add('open');
+}
+function closeModalEv(e){if(e.target.id==='klinik-modal')closeModal();}
+function closeModal(){document.getElementById('klinik-modal').classList.remove('open');}
+
+// ── BD Timeline ───────────────────────────────────────────────────────────────
+function buildTimeline(){
+  const curMonth=new Date().getMonth();
+  const grid=document.getElementById('tl-grid');
+  grid.innerHTML='<div class="tl-corner">Channel</div>'+MONTHS.map((m,i)=>`<div class="tl-month${i===curMonth?' cur':''}">${m}</div>`).join('');
+  BD_TL_ROWS.forEach(row=>{
+    const cells=row.plan.map((intensity,mIdx)=>{
+      if(!intensity)return`<div class="tl-cell${mIdx===curMonth?' cur':''}" style="${mIdx===curMonth?'background:rgba(52,182,248,.05)':''}"></div>`;
+      const cnt=intensity*Math.floor(8+rng()*6);
+      const status=mIdx<curMonth?'done':mIdx===curMonth?'active':'planned';
+      return`<div class="tl-cell${mIdx===curMonth?' cur':''}" style="${mIdx===curMonth?'background:rgba(52,182,248,.05)':''}"><span class="tl-bar s-${intensity} ${status}"></span><div class="tl-count">${cnt}</div><div class="tl-tooltip"><strong>${row.label}</strong> · ${MONTHS[mIdx]}<br><span style="opacity:.7">${cnt} touches · ${status}</span></div></div>`;
+    });
+    grid.innerHTML+=`<div class="tl-rowlbl"><div class="tl-dot" style="background:${row.color}"></div>${row.label}</div>${cells.join('')}`;
+  });
+}
+
+function buildBDWeek(){
+  const kd=BD_WEEK;
+  document.getElementById('bd-kpis').innerHTML=[
+    {label:'Contacted',val:kd.contacted,delta:kd.cDelta},
+    {label:'Responses',val:kd.responses,delta:kd.rDelta},
+    {label:'Meetings',val:kd.meetings,delta:kd.mDelta},
+  ].map(k=>{
+    const cls=k.delta>0?'up':k.delta<0?'down':'flat';
+    const str=k.delta>0?'+'+k.delta:k.delta===0?'—':''+k.delta;
+    return`<div class="kpi"><div class="kpi-lbl">${k.label}</div><div class="kpi-val">${k.val}</div><div style="margin-top:3px"><span class="kpi-delta ${cls}">${str}</span><span style="font-size:11px;color:var(--g4);margin-left:4px">vs last week</span></div></div>`;
+  }).join('');
+  renderReminders();
+}
+
+function renderReminders(){
+  const rem=remindersState.filter(r=>!r.done).length;
+  document.getElementById('bd-reminders').innerHTML=`<div class="rem-head"><h3>Reminders</h3><span class="rem-count">${rem}/${remindersState.length} open</span></div>${remindersState.map(r=>`<div class="reminder${r.done?' done':''}" onclick="toggleReminder(${r.id})"><div class="rem-check">${r.done?'✓':''}</div><div><div class="rem-text">${r.text}</div><div class="rem-meta"><span class="prio-dot ${r.priority}"></span><span class="rem-due">${r.due}</span></div></div></div>`).join('')}`;
+}
+function toggleReminder(id){remindersState=remindersState.map(r=>r.id===id?{...r,done:!r.done}:r);renderReminders();}
+
+function buildFunnel(){
+  const total=BD_FUNNEL[0].count||1;
+  document.getElementById('bd-funnel').innerHTML=BD_FUNNEL.map((s,i)=>`<button class="funnel-stage ${s.cls}${activeStage===s.id?' is-active':''}" onclick="selectStage('${s.id}')"><div class="fs-top"><span class="fs-label">${s.label}</span>${i<BD_FUNNEL.length-1?'<span class="fs-arrow">→</span>':''}</div><div class="fs-count">${s.count}</div><div class="fs-sub">${s.sub}</div><div class="fs-bar"><div class="fs-bar-fill" style="width:${(s.count/total*100).toFixed(0)}%"></div></div></button>`).join('');
+}
+function selectStage(id){activeStage=activeStage===id?'all':id;buildFunnel();renderLeads();}
+function filterLeads(){leadSearch=document.getElementById('lead-search').value;renderLeads();}
+function sortLeads(col){if(sortCol===col)sortDir=sortDir==='asc'?'desc':'asc';else{sortCol=col;sortDir='asc';}renderLeads();}
+function renderLeads(){
+  let leads=ALL_LEADS;
+  if(activeStage&&activeStage!=='all'){
+    leads=activeStage==='contacted'?leads.filter(l=>l.stage!=='new'):leads.filter(l=>l.stage===activeStage);
+  }
+  if(leadSearch.trim()){const q=leadSearch.toLowerCase();leads=leads.filter(l=>(l.name||'').toLowerCase().includes(q)||(l.company||'').toLowerCase().includes(q)||(l.note||'').toLowerCase().includes(q));}
+  leads=[...leads].sort((a,b)=>{const av=a[sortCol]??'',bv=b[sortCol]??'';return sortDir==='asc'?(av<bv?-1:av>bv?1:0):(av<bv?1:av>bv?-1:0);});
+  document.getElementById('lead-count').textContent=`${leads.length} of ${ALL_LEADS.length} leads`;
+  document.getElementById('filter-pill-wrap').innerHTML=activeStage&&activeStage!=='all'?`<span class="filter-pill">Stage: ${activeStage}<span class="x" onclick="selectStage('all')">×</span></span>`:'';
+  const stageLabel={new:'New',warm:'Warm',cold:'Cold',rejected:'Rejected',contacted:'Contacted',won:'Won'};
+  document.getElementById('lead-tbody').innerHTML=leads.map(l=>`<tr onclick="openDrawer(${l.id})"><td><div class="lead-name-wrap"><div class="lead-avatar">${(l.name||'?').split(' ').map(s=>s[0]).join('').slice(0,2).toUpperCase()}</div><div><div class="lead-name-text">${l.name||'—'}</div><div class="lead-company">${l.company||'—'}</div></div></div></td><td class="cell-muted">${l.title||'—'}</td><td><span class="stage-pill ${l.stage||'new'}">${stageLabel[l.stage]||l.stage||'New'}</span></td><td>${l.owner||'—'}</td><td>${l.channel||'—'}</td><td class="cell-muted">${l.lastActivity||'—'}</td><td class="cell-muted">${l.nextAction||'—'}</td><td class="cell-muted" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.note||'—'}</td></tr>`).join('');
+}
+function openDrawer(id){
+  const l=ALL_LEADS.find(x=>x.id===id);if(!l)return;
+  drawerLead=l;
+  document.getElementById('dr-name').textContent=l.name||l.company||'—';
+  document.getElementById('dr-sub').textContent=`${l.title||'—'} · ${l.company||'—'}`;
+  document.getElementById('dr-body').innerHTML=`<div class="drawer-field"><span class="drawer-field-label">Stage</span><span><span class="stage-pill ${l.stage||'new'}">${l.stage||'new'}</span></span></div><div class="drawer-field"><span class="drawer-field-label">Owner</span><span class="drawer-field-value">${l.owner||'—'}</span></div><div class="drawer-field"><span class="drawer-field-label">Channel</span><span class="drawer-field-value">${l.channel||'—'}</span></div><div class="drawer-field"><span class="drawer-field-label">Segment</span><span class="drawer-field-value">${l.icp_segment||'—'}</span></div><div class="drawer-field"><span class="drawer-field-label">Industry</span><span class="drawer-field-value">${l.industry||'—'}</span></div><div class="drawer-field"><span class="drawer-field-label">Location</span><span class="drawer-field-value">${l.location||'—'}</span></div><div class="drawer-field"><span class="drawer-field-label">Priority</span><span class="drawer-field-value">${l.priority_score||'—'}</span></div><div class="drawer-field"><span class="drawer-field-label">Contacted</span><span class="drawer-field-value cell-mono" style="font-size:12px">${l.dateContacted||'—'}</span></div><div class="drawer-field"><span class="drawer-field-label">Last Activity</span><span class="drawer-field-value">${l.lastActivity||'—'}</span></div><div class="drawer-field"><span class="drawer-field-label">Next Action</span><span class="drawer-field-value">${l.nextAction||'—'}</span></div><div class="drawer-field" style="grid-template-columns:1fr;gap:5px"><span class="drawer-field-label">Notes</span><span class="drawer-field-value">${l.note||'No notes yet.'}</span></div>`;
+  document.getElementById('lead-drawer').classList.add('open');
+}
+function closeDrawer(){document.getElementById('lead-drawer').classList.remove('open');}
+
+// ── Reports ───────────────────────────────────────────────────────────────────
+function buildReports(){
+  const body=document.getElementById('reports-body');
+  if(!REPORTS||!Object.keys(REPORTS).length){
+    body.innerHTML='<div style="color:var(--g4);font-size:13px;padding:8px 0">No reports yet. Click "Generate Weekly PDF" to create your first report.</div>';
+    return;
+  }
+  body.innerHTML=Object.entries(REPORTS).sort((a,b)=>b[0].localeCompare(a[0])).map(([key,weeks])=>{
+    const[yr,mo]=key.split('-').map(Number);
+    return`<div class="report-month-group"><div class="report-month-title">${MONTHS[mo-1]} ${yr}</div>${weeks.map(w=>`<div class="report-week-row"><div><div class="report-week-name">${w.name}</div><div class="report-week-range">${w.range}</div></div><button class="report-dl-btn" onclick="dlReport('${w.file}')">⬇ Download PDF</button></div>`).join('')}</div>`;
+  }).join('');
+}
+function dlReport(file){
+  window.location.href=`/api/ops/download/${encodeURIComponent(file)}`;
+}
+
+// ── Dept update rendering ─────────────────────────────────────────────────────
+function _renderHighlights(elId, highlights){
+  const el=document.getElementById(elId);if(!el)return;
+  if(!highlights||!highlights.length){el.innerHTML='<li style="color:var(--g4)">No data from Notion yet.</li>';return;}
+  el.innerHTML=highlights.map(([label,text])=>`<li><strong>${label}:</strong> ${text}</li>`).join('');
+}
+function _renderIssues(elId, issues){
+  const el=document.getElementById(elId);if(!el)return;
+  if(!issues||!issues.length){el.innerHTML='<li style="color:var(--g4)">Tidak ada isu.</li>';return;}
+  el.innerHTML=issues.map(i=>`<li>${i}</li>`).join('');
+}
+function _renderActions(elId, actions){
+  const el=document.getElementById(elId);if(!el)return;
+  if(!actions||!actions.length){el.innerHTML='<tr><td colspan="3" style="color:var(--g4);text-align:center">No action items.</td></tr>';return;}
+  el.innerHTML=actions.map(([item,owner,due])=>`<tr><td>${item}</td><td>${owner}</td><td><span class="badge b-grey">${due}</span></td></tr>`).join('');
+}
+
+function _applyDeptUpdates(updates){
+  const depts=['marketing','finance','ga','am','hr'];
+  const hlMap={marketing:'mktg-highlights',finance:'finance-highlights',ga:'ga-highlights',am:'am-highlights',hr:'hr-highlights'};
+  const isMap={marketing:'mktg-issues',finance:'finance-issues',ga:'ga-issues',am:'am-issues',hr:'hr-issues'};
+  const acMap={marketing:'mktg-actions',finance:'finance-actions',ga:'ga-actions',am:'am-actions',hr:'hr-actions'};
+  depts.forEach(k=>{
+    const d=updates[k];
+    if(!d)return;
+    _renderHighlights(hlMap[k],d.highlights);
+    _renderIssues(isMap[k],d.issues);
+    _renderActions(acMap[k],d.actions);
+  });
+}
+
+// ── Live data loading ─────────────────────────────────────────────────────────
+let _syncInProgress=false;
+
+async function loadDashboardData(){
+  if(_syncInProgress)return;
+  _syncInProgress=true;
+  document.getElementById('sync-time').textContent='Syncing…';
+  try{
+    const resp=await fetch('/api/ops/data');
+    if(!resp.ok)throw new Error(`HTTP ${resp.status}`);
+    const data=await resp.json();
+
+    if(data.week_label){
+      document.getElementById('sb-week').textContent=data.week_label;
+      document.getElementById('tb-week').textContent=data.week_label;
+    }
+    if(data.leads&&data.leads.length>0){
+      ALL_LEADS=data.leads;
+    }
+    if(data.funnel&&data.funnel.length>0){
+      BD_FUNNEL=data.funnel;
+    }
+    if(data.calendar&&Object.keys(data.calendar).length>0){
+      Object.assign(CAL_DATA,data.calendar);
+      buildYearStrip();
+      renderCal();
+    }
+    if(data.dept_updates){
+      _applyDeptUpdates(data.dept_updates);
+    }
+    if(data.reports){
+      REPORTS=data.reports;
+      buildReports();
+    }
+    buildFunnel();
+    renderLeads();
+
+    document.getElementById('sync-time').textContent=`Last sync: ${data.sync_time}`;
+  }catch(e){
+    document.getElementById('sync-time').textContent=`Sync failed: ${e.message}`;
+    console.error('Dashboard sync error:',e);
+  }finally{
+    _syncInProgress=false;
+  }
+}
+
+async function generatePDF(){
+  const btn=document.getElementById('gen-btn');
+  const toast=document.getElementById('toast');
+  btn.disabled=true;
+  btn.textContent='⏳ Generating…';
+  toast.textContent='⏳ Generating PDF from Notion data…';
+  toast.classList.add('show');
+  try{
+    const resp=await fetch('/api/ops/generate-pdf',{method:'POST'});
+    if(!resp.ok){const err=await resp.json().catch(()=>({error:'Unknown error'}));throw new Error(err.error||`HTTP ${resp.status}`);}
+    const blob=await resp.blob();
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    const cd=resp.headers.get('Content-Disposition')||'';
+    const m=cd.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+    a.download=m?m[1].replace(/['"]/g,''):'weekly-report.pdf';
+    a.href=url;
+    document.body.appendChild(a);a.click();a.remove();
+    URL.revokeObjectURL(url);
+    toast.textContent='✅ PDF downloaded!';
+    loadDashboardData();
+  }catch(e){
+    toast.textContent=`❌ ${e.message}`;
+  }finally{
+    btn.disabled=false;
+    btn.innerHTML='📄 Generate Weekly PDF';
+    setTimeout(()=>toast.classList.remove('show'),4000);
+  }
+}
+
+function syncData(){loadDashboardData();}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+(function init(){
+  const today=new Date();
+  const days=['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+  const months=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'];
+  document.getElementById('tb-date').textContent=`${days[today.getDay()]}, ${today.getDate()} ${months[today.getMonth()]} ${today.getFullYear()}`;
+  buildYearStrip();
+  renderCal();
+  buildPrograms();
+  buildKliniks();
+  buildTimeline();
+  buildBDWeek();
+  buildFunnel();
+  renderLeads();
+  buildReports();
+  // Load live data from Notion
+  loadDashboardData();
+})();
+</script>
+</body>
+</html>
