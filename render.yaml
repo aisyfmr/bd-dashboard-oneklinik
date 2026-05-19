@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: bd-dashboard-oneklinik
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    plan: free
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.9
+      - key: NOTION_TOKEN
+        sync: false        # Set this manually in the Render dashboard — never commit the real value
