@@ -165,13 +165,26 @@ def _parse_page_content(page_id: str) -> dict:
         label_part = text.split(": ", 1)[0].lower() if ": " in text else ""
         is_issue_label = any(kw in label_part for kw in ISSUE_SECTIONS)
 
+        # Detect clinic/group headers: bulleted items that have nested children
+        # (e.g. "• Pasar Baru" with sub-bullets for that clinic's updates)
+        is_group_header = (
+            bt in ("bulleted_list_item", "numbered_list_item")
+            and b.get("has_children", False)
+            and current_sec in ("highlight", "note", None)
+            and not is_issue_label
+        )
+
         if current_sec == "action":
             action_raw.append(text)
         elif current_sec == "issue" or is_issue_prefix or is_issue_label:
             issues.append(text.lstrip("⚠⛔🔴").strip())
+        elif is_group_header:
+            highlights.append(("__group__", text))
         elif current_sec in ("highlight", "note", None):
-            # Paragraphs that look like "Label: body"
-            if ": " in text:
+            if bt in ("bulleted_list_item", "numbered_list_item"):
+                # Plain nested bullet — indent under its parent group
+                highlights.append(("•", text))
+            elif ": " in text:
                 label, body = text.split(": ", 1)
                 highlights.append((label.strip(), body.strip()))
             else:

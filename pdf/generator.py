@@ -230,9 +230,19 @@ def _section_block(story, highlights, issues=None, actions=None, dar=None):
     story.append(ThinLine(CW))
     story.append(Spacer(1, 6))
     for label, text in highlights:
-        story.append(Paragraph(str(label), ST['bold']))
-        story.append(Paragraph(f'•  {text}', ST['bullet']))
-        story.append(Spacer(1, 3))
+        if label == '__group__':
+            # Clinic / project group header (bold, slightly indented)
+            story.append(Spacer(1, 6))
+            story.append(Paragraph(f'<b>{text}</b>', ST['bold']))
+            story.append(Spacer(1, 1))
+        elif label == '•':
+            # Plain bullet — child of the preceding group header
+            story.append(Paragraph(f'•  {text}', ST['bullet']))
+            story.append(Spacer(1, 2))
+        else:
+            story.append(Paragraph(str(label), ST['bold']))
+            story.append(Paragraph(f'•  {text}', ST['bullet']))
+            story.append(Spacer(1, 3))
     if issues:
         story.append(Spacer(1, 4))
         story.append(Paragraph('Issues & Risks', ST['sub']))

@@ -146,16 +146,42 @@ def update_data():
 # Ops Dashboard
 # ══════════════════════════════════════════════════════════════════════════════
 
-def _current_week_label():
+MONTHS_ID = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des']
+
+
+def _prev_week_monday():
+    """Return the Monday of the previous completed week."""
     today = datetime.now()
-    mon = today - timedelta(days=today.weekday())
+    this_monday = today - timedelta(days=today.weekday())
+    return this_monday - timedelta(days=7)
+
+
+def _prev_week_label():
+    """Display label for the previous week, e.g. 'Week 20  |  11–15 Mei 2026'."""
+    mon = _prev_week_monday()
     fri = mon + timedelta(days=4)
-    # ISO week number
-    week_num = today.isocalendar()[1]
-    months_id = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des']
-    start_str = f"{mon.day} {months_id[mon.month-1]}"
-    end_str   = f"{fri.day} {months_id[fri.month-1]} {fri.year}"
-    return f"Week {week_num}  –  {start_str}–{end_str}"
+    week_num = mon.isocalendar()[1]
+    start = f"{mon.day} {MONTHS_ID[mon.month-1]}"
+    end   = f"{fri.day} {MONTHS_ID[fri.month-1]} {fri.year}"
+    return f"Week {week_num}  |  {start}–{end}"
+
+
+def _prev_week_filename():
+    """Filesystem-safe PDF filename for the previous week (no | character)."""
+    mon = _prev_week_monday()
+    fri = mon + timedelta(days=4)
+    week_num = mon.isocalendar()[1]
+    date_range = f"{mon.day}-{fri.day} {MONTHS_ID[mon.month-1]} {fri.year}"
+    return f"Week {week_num} - {date_range} - Ops Weekly Report.pdf"
+
+
+def _prev_week_display_filename():
+    """Display filename with | separator for Content-Disposition header."""
+    mon = _prev_week_monday()
+    fri = mon + timedelta(days=4)
+    week_num = mon.isocalendar()[1]
+    date_range = f"{mon.day}-{fri.day} {MONTHS_ID[mon.month-1]} {fri.year}"
+    return f"Week {week_num} | {date_range} - Ops Weekly Report.pdf"
 
 
 def _current_gen_date():
@@ -232,29 +258,36 @@ def ops_data():
     except Exception as e:
         dept_updates = {}; print(f"Dept updates error: {e}")
 
+    try:
+        from notion.marketing_hub import fetch_marketing_projects
+        mktg_projects = fetch_marketing_projects()
+    except Exception as e:
+        mktg_projects = {}; print(f"Marketing projects error: {e}")
+
     funnel  = compute_funnel(leads)
     reports = _list_reports()
 
     return jsonify({
         'ok': True,
         'sync_time': datetime.now().strftime('%d %b %Y %H:%M'),
-        'week_label': _current_week_label(),
+        'week_label': _prev_week_label(),
         'leads': leads,
         'funnel': funnel,
         'calendar': cal_data,
-        'dept_updates': dept_updates,
-        'reports': reports,
+        'dept_updates':   dept_updates,
+        'mktg_projects':  mktg_projects,
+        'reports':        reports,
     })
 
 
 @app.route('/api/ops/generate-pdf', methods=['POST'])
 def ops_generate_pdf():
-    """Fetch live Notion data, generate a PDF, save to reports/, and stream it back."""
+    """Fetch live Notion data, generate a PDF, save to reports/, return JSON with preview URL."""
     from notion.bd_pipeline import fetch_bd_pipeline, build_pipeline_for_pdf
     from notion.weekly_update import fetch_all_dept_updates
     from pdf.generator import generate_weekly_report
 
-    week_label = _current_week_label()
+    week_label = _prev_week_label()
     gen_date   = _current_gen_date()
 
     # Fetch live data
@@ -299,37 +332,49 @@ def ops_generate_pdf():
         'projects': {'homecare': [], 'oneklinik': []},
     }
 
-    # Output filename
-    today = datetime.now()
-    filename = f"{today.strftime('%d-%b%Y')}-Ops-Weekly-Report.pdf"
-    output_path = os.path.join(REPORTS_DIR, filename)
+    # Output filename — filesystem-safe (no | character for Windows local dev)
+    fs_filename      = _prev_week_filename()
+    display_filename = _prev_week_display_filename()
+    output_path      = os.path.join(REPORTS_DIR, fs_filename)
 
     try:
         generate_weekly_report(data, output_path)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-    # Upload reference to Notion project-progress page
+    # Upload reference to Notion project-progress page (non-fatal)
     try:
         from notion.client import append_pdf_link_to_page
         append_pdf_link_to_page(
             page_id='33ac88be4d3c8050a4afd516bc034799',
             section_heading='Ops PDF Report',
-            filename=filename,
+            filename=display_filename,
             week_label=week_label,
             gen_date=gen_date,
         )
     except Exception as e:
         print(f"Notion PDF upload note failed (non-fatal): {e}")
 
-    return send_from_directory(REPORTS_DIR, filename,
-                               as_attachment=True,
-                               mimetype='application/pdf')
+    return jsonify({
+        'ok':               True,
+        'filename':         fs_filename,
+        'display_filename': display_filename,
+        'view_url':         f'/api/ops/view/{fs_filename}',
+        'download_url':     f'/api/ops/download/{fs_filename}',
+    })
 
 
 @app.route('/api/ops/reports')
 def ops_reports():
     return jsonify({'ok': True, 'reports': _list_reports()})
+
+
+@app.route('/api/ops/view/<path:filename>')
+def ops_view(filename):
+    """Serve a PDF inline (for preview iframe)."""
+    return send_from_directory(REPORTS_DIR, filename,
+                               as_attachment=False,
+                               mimetype='application/pdf')
 
 
 @app.route('/api/ops/download/<path:filename>')

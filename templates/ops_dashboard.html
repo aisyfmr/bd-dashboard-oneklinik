@@ -354,6 +354,10 @@ tr:hover td{background:var(--g1)}
       <div class="prog-grid" id="prog-grid"></div>
       <div class="dept-bar"><span class="dept-bar-name">🏷️ Promo</span></div>
       <div class="promo-grid" id="promo-grid"></div>
+      <div class="dept-bar" style="margin-top:20px"><span class="dept-bar-name">🗂️ Active Projects (Previous Week)</span></div>
+      <div style="padding:4px 0" id="mktg-projects">
+        <p style="color:var(--g4);font-size:13px">Loading from Notion…</p>
+      </div>
     </div>
   </div>
 
@@ -561,6 +565,23 @@ tr:hover td{background:var(--g1)}
 
   </div><!-- /content -->
 </div><!-- /main -->
+
+<!-- PDF Preview Modal -->
+<div id="pdf-modal" style="display:none;position:fixed;inset:0;z-index:900;background:rgba(0,0,0,.55);align-items:center;justify-content:center">
+  <div style="background:var(--white);border-radius:var(--r);width:92vw;max-width:960px;height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.25)">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--g2);flex-shrink:0">
+      <div>
+        <div style="font-weight:700;font-size:14px;color:var(--ch2)" id="modal-filename">Weekly Report</div>
+        <div style="font-size:12px;color:var(--g4);margin-top:2px">Preview — tap Download to save</div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button id="modal-dl-btn" onclick="downloadFromModal()" style="background:var(--blue);color:#fff;border:none;border-radius:7px;padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer">⬇ Download PDF</button>
+        <button onclick="closePdfModal()" style="background:var(--g2);color:var(--ch);border:none;border-radius:7px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer">✕ Close</button>
+      </div>
+    </div>
+    <iframe id="pdf-iframe" style="flex:1;border:none;background:#f0f0f0" src="about:blank"></iframe>
+  </div>
+</div>
 
 <!-- Program/Promo modal -->
 <div class="overlay" id="prog-modal" onclick="if(event.target.id==='prog-modal')closeProgModal()">
@@ -881,7 +902,11 @@ function dlReport(file){
 function _renderHighlights(elId, highlights){
   const el=document.getElementById(elId);if(!el)return;
   if(!highlights||!highlights.length){el.innerHTML='<li style="color:var(--g4)">No data from Notion yet.</li>';return;}
-  el.innerHTML=highlights.map(([label,text])=>`<li><strong>${label}:</strong> ${text}</li>`).join('');
+  el.innerHTML=highlights.map(([label,text])=>{
+    if(label==='__group__') return `<li style="list-style:none;margin:8px 0 3px -4px"><strong style="color:var(--blue);font-size:13px">${text}</strong></li>`;
+    if(label==='•') return `<li style="margin-left:8px">${text}</li>`;
+    return `<li><strong>${label}:</strong> ${text}</li>`;
+  }).join('');
 }
 function _renderIssues(elId, issues){
   const el=document.getElementById(elId);if(!el)return;
@@ -938,6 +963,9 @@ async function loadDashboardData(){
     if(data.dept_updates){
       _applyDeptUpdates(data.dept_updates);
     }
+    if(data.mktg_projects&&data.mktg_projects.groups){
+      _renderMktgProjects(data.mktg_projects);
+    }
     if(data.reports){
       REPORTS=data.reports;
       buildReports();
@@ -954,26 +982,36 @@ async function loadDashboardData(){
   }
 }
 
+// ── PDF Preview Modal ─────────────────────────────────────────────────────────
+let _pdfDownloadUrl='';
+function openPdfModal(viewUrl,downloadUrl,filename){
+  _pdfDownloadUrl=downloadUrl;
+  document.getElementById('pdf-iframe').src=viewUrl;
+  document.getElementById('modal-filename').textContent=filename;
+  const m=document.getElementById('pdf-modal');
+  m.style.display='flex';
+}
+function closePdfModal(){
+  document.getElementById('pdf-modal').style.display='none';
+  document.getElementById('pdf-iframe').src='about:blank';
+}
+function downloadFromModal(){
+  window.location.href=_pdfDownloadUrl;
+}
+
 async function generatePDF(){
   const btn=document.getElementById('gen-btn');
   const toast=document.getElementById('toast');
   btn.disabled=true;
   btn.textContent='⏳ Generating…';
-  toast.textContent='⏳ Generating PDF from Notion data…';
+  toast.textContent='⏳ Building PDF from Notion data…';
   toast.classList.add('show');
   try{
     const resp=await fetch('/api/ops/generate-pdf',{method:'POST'});
-    if(!resp.ok){const err=await resp.json().catch(()=>({error:'Unknown error'}));throw new Error(err.error||`HTTP ${resp.status}`);}
-    const blob=await resp.blob();
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');
-    const cd=resp.headers.get('Content-Disposition')||'';
-    const m=cd.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
-    a.download=m?m[1].replace(/['"]/g,''):'weekly-report.pdf';
-    a.href=url;
-    document.body.appendChild(a);a.click();a.remove();
-    URL.revokeObjectURL(url);
-    toast.textContent='✅ PDF downloaded!';
+    const data=await resp.json().catch(()=>({}));
+    if(!resp.ok) throw new Error(data.error||`HTTP ${resp.status}`);
+    toast.classList.remove('show');
+    openPdfModal(data.view_url, data.download_url, data.display_filename||'Weekly Report.pdf');
     loadDashboardData();
   }catch(e){
     toast.textContent=`❌ ${e.message}`;
@@ -984,10 +1022,36 @@ async function generatePDF(){
     btn.disabled=false;
     btn.innerHTML='📄 Generate Weekly PDF';
   }
-  setTimeout(()=>toast.classList.remove('show'),4000);
 }
 
 function syncData(){loadDashboardData();}
+
+// ── Marketing Projects rendering ──────────────────────────────────────────────
+function _renderMktgProjects(mktgProjects){
+  const el=document.getElementById('mktg-projects');
+  if(!el)return;
+  const groups=mktgProjects.groups||{};
+  const keys=Object.keys(groups);
+  if(!keys.length){el.innerHTML='<p style="color:var(--g4);font-size:13px">No active projects for previous week.</p>';return;}
+  const STATUS_COLOR={'New Project Active':'var(--green)','New Project In Progress':'var(--yellow)','On Hold':'var(--g4)','Done':'var(--blue)'};
+  el.innerHTML=keys.map(cat=>{
+    const items=groups[cat];
+    const label=cat.replace('Marketing - ','');
+    return `<div style="margin-bottom:14px">
+      <div style="font-size:11px;font-weight:700;color:var(--g4);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">${label}</div>
+      ${items.map(p=>{
+        const sc=STATUS_COLOR[p.status]||'var(--g4)';
+        return `<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:7px 10px;border-radius:8px;background:var(--g1);margin-bottom:4px">
+          <div>
+            <div style="font-weight:600;font-size:13px">${p.name||'—'}</div>
+            <div style="font-size:12px;color:var(--g4);margin-top:2px">${p.class}</div>
+          </div>
+          <span style="font-size:11px;font-weight:600;color:${sc};white-space:nowrap;margin-left:10px">${p.status}</span>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }).join('');
+}
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 (function init(){
