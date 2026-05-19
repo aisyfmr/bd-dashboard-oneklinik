@@ -252,7 +252,8 @@ def _section_block(story, highlights, issues=None, actions=None, dar=None):
 
 
 # ── Section builders ──────────────────────────────────────────────────────────
-def _cover(story, week_label, gen_date, logo_path):
+def _cover(story, week_label, gen_date, logo_path, extra_toc=None):
+    """extra_toc: list of (num, dest, name) for optional sections (e.g. project pages)."""
     story.append(Spacer(1, 55))
     if os.path.exists(logo_path):
         img = RLImage(logo_path, width=115, height=30)
@@ -276,9 +277,9 @@ def _cover(story, week_label, gen_date, logo_path):
         ('04', 's_am',      'Account Manager'),
         ('05', 's_hr',      'Human Resources (HR)'),
         ('06', 's_bd',      'Business Development'),
-        ('07', 's_proj_hc', 'Project Progress — Marketing Homecare by OneKlinik'),
-        ('08', 's_proj_ok', 'Project Progress — Marketing OneKlinik'),
     ]
+    if extra_toc:
+        toc.extend(extra_toc)
     for num, dest, name in toc:
         story.append(TOCRow(num, name, dest, CW))
         story.append(Spacer(1, 2))
@@ -428,6 +429,20 @@ def generate_weekly_report(data: dict, output_path: str) -> str:
             d.get("dar"),
         )
 
+    hc_projects = projects.get("homecare", [])
+    ok_projects = projects.get("oneklinik", [])
+
+    # Build extra TOC entries only for project sections that will actually be rendered
+    extra_toc = []
+    next_num = 7
+    if hc_projects:
+        extra_toc.append((f'0{next_num}', 's_proj_hc',
+                          'Project Progress — Marketing Homecare by OneKlinik'))
+        next_num += 1
+    if ok_projects:
+        extra_toc.append((f'0{next_num}', 's_proj_ok',
+                          'Project Progress — Marketing OneKlinik'))
+
     doc = SimpleDocTemplate(
         output_path,
         pagesize=A4, leftMargin=ML, rightMargin=MR,
@@ -435,7 +450,7 @@ def generate_weekly_report(data: dict, output_path: str) -> str:
         title='Ops Weekly Report', author='OneKlinik Ops',
     )
     story = []
-    _cover(story, week_label, gen_date, logo_path)
+    _cover(story, week_label, gen_date, logo_path, extra_toc=extra_toc or None)
 
     mktg_h, mktg_i, mktg_a, mktg_d = dept("marketing")
     _dept_page(story, 'Marketing', week_label, 's_mktg', mktg_h, mktg_i, mktg_a, mktg_d)
@@ -460,11 +475,9 @@ def generate_weekly_report(data: dict, output_path: str) -> str:
              bd.get("pipeline", []),
              bd.get("dar"))
 
-    hc_projects = projects.get("homecare", [])
     if hc_projects:
         _project_page(story, 'Marketing Homecare by OneKlinik', 's_proj_hc', week_label, hc_projects)
 
-    ok_projects = projects.get("oneklinik", [])
     if ok_projects:
         _project_page(story, 'Marketing OneKlinik', 's_proj_ok', week_label, ok_projects)
 
